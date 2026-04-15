@@ -29,46 +29,46 @@ export function WorkflowPage() {
     switch (currentStep) {
       case 1:
         return {
-          title: 'Patch Locate',
-          description: 'Analyzing vulnerability and patch differences using Abstract Syntax Tree (AST) comparison...',
+          title: '补丁定位 (Patch Locate)',
+          description: '使用抽象语法树 (AST) 对比分析漏洞和补丁差异...',
           details: [
-            'Parsing source code into AST structures',
-            'Identifying modified nodes between versions',
-            'Extracting vulnerability signature patterns',
-            'Computing diff hunks and context lines',
+            '将源码解析为 AST 结构',
+            '识别版本间修改的节点',
+            '提取漏洞特征模式',
+            '计算差异块与上下文代码',
           ],
         };
       case 2:
         return {
-          title: 'Semantic Mapping',
-          description: 'Establishing semantic relationships between vulnerable and target codebases...',
+          title: '语义映射 (Semantic Mapping)',
+          description: '在漏洞版本与目标代码库之间建立语义联系...',
           details: [
-            'Analyzing function signatures and dataflows',
-            'Mapping variable names and types',
-            'Computing semantic similarity scores',
-            'Building cross-version symbol tables',
+            '分析函数签名和数据流',
+            '映射变量名和类型',
+            '计算语义相似度评分',
+            '构建跨版本符号表',
           ],
         };
       case 3:
         return {
-          title: 'Patch Transfer',
-          description: 'Applying patch transformations to target version using AI-guided adaptation...',
+          title: '补丁迁移 (Patch Transfer)',
+          description: '使用 AI 引导的自适应调整，将补丁转换应用到目标版本...',
           details: [
-            'Locating equivalent code regions in target',
-            'Adapting patch to target context',
-            'Resolving naming and structural differences',
-            'Generating modified target source',
+            '定位目标代码中的等效区域',
+            '将补丁调整以适应目标上下文',
+            '解决命名和结构的差异',
+            '生成修改后的目标源码',
           ],
         };
       case 4:
         return {
-          title: 'Verification',
-          description: 'Running comprehensive tests to validate patch effectiveness...',
+          title: '验证 (Verification)',
+          description: '运行综合测试以验证补丁有效性...',
           details: [
-            'Compiling modified target code',
-            'Executing proof-of-concept exploits',
-            'Running unit test suites',
-            'Validating security properties',
+            '编译修改后的目标代码',
+            '执行概念验证 (PoC) 漏洞利用',
+            '运行单元测试集',
+            '验证安全属性',
           ],
         };
       default:
@@ -121,21 +121,21 @@ export function WorkflowPage() {
             className="mb-6 text-gray-400 hover:text-white"
           >
             <ArrowLeft className="w-4 h-4 mr-2" />
-            Back to Configuration
+            返回配置页
           </Button>
 
           <div className="flex items-center justify-between">
             <div>
               <h1 className="text-4xl font-bold text-white mb-2">
-                Patch Migration in Progress
+                补丁移植正在进行中
               </h1>
               <p className="text-gray-400">
-                AI-powered analysis and transformation pipeline
+                AI 驱动的分析和转换流水线
               </p>
             </div>
             <div className="flex items-center gap-2 px-4 py-2 bg-purple-500/20 border border-purple-500/30 rounded-lg">
               <Zap className="w-4 h-4 text-purple-400" />
-              <span className="text-sm text-purple-300">Processing</span>
+              <span className="text-sm text-purple-300">处理中</span>
             </div>
           </div>
         </motion.div>
@@ -195,25 +195,25 @@ export function WorkflowPage() {
               <p className="text-2xl font-bold text-blue-400">
                 {currentStep * 25}%
               </p>
-              <p className="text-xs text-gray-500 mt-1">Complete</p>
+              <p className="text-xs text-gray-500 mt-1">已完成</p>
             </div>
             <div className="text-center">
               <p className="text-2xl font-bold text-purple-400">
                 {currentStep}
               </p>
-              <p className="text-xs text-gray-500 mt-1">Steps Done</p>
+              <p className="text-xs text-gray-500 mt-1">已完成步骤</p>
             </div>
             <div className="text-center">
               <p className="text-2xl font-bold text-pink-400">
                 {Math.floor(currentStep * 2.3)}s
               </p>
-              <p className="text-xs text-gray-500 mt-1">Elapsed Time</p>
+              <p className="text-xs text-gray-500 mt-1">用时</p>
             </div>
             <div className="text-center">
               <p className="text-2xl font-bold text-green-400">
                 {currentStep === 4 ? '100%' : '—'}
               </p>
-              <p className="text-xs text-gray-500 mt-1">Confidence</p>
+              <p className="text-xs text-gray-500 mt-1">置信度</p>
             </div>
           </div>
         </motion.div>
@@ -235,16 +235,16 @@ export function WorkflowPage() {
               <Zap className="w-8 h-8 text-green-400" />
             </motion.div>
             <h3 className="text-2xl font-bold text-green-400 mb-2">
-              Patch Successfully Migrated!
+              补丁移植成功！
             </h3>
             <p className="text-gray-400 mb-6">
-              All verification tests passed. The target version has been successfully patched.
+              所有验证测试均已通过。目标版本已成功应用补丁。
             </p>
             <Button
               onClick={() => navigate('/comparison')}
               className="bg-cyan-600 hover:bg-cyan-500 text-white"
             >
-              View Code Comparison
+              查看代码对比
               <ArrowRight className="w-4 h-4 ml-2" />
             </Button>
           </motion.div>

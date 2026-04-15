@@ -48,19 +48,21 @@ export function MappingGraph({ nodes, edges, onEdgeHover }: MappingGraphProps) {
     return 'stroke-red-400';
   };
 
+  const getYPos = (index: number) => 100 + index * 70;
+
   const calculatePath = (fromIndex: number, toIndex: number) => {
-    const startY = 80 + fromIndex * 100;
-    const endY = 80 + toIndex * 100;
-    const startX = 350;
-    const endX = 750;
-    const midX = (startX + endX) / 2;
+    const startY = 100 + fromIndex * 70 + 20; // 20 is half node height
+    const endY = 100 + toIndex * 70 + 20;
+    const startX = 0;
+    const endX = 100;
+    const midX = 50;
 
     return `M ${startX} ${startY} C ${midX} ${startY}, ${midX} ${endY}, ${endX} ${endY}`;
   };
 
   return (
-    <div className="relative bg-slate-900/30 rounded-lg border border-white/10 p-8 overflow-hidden">
-      <svg className="w-full h-[600px]">
+    <div className="relative bg-slate-900/30 rounded-lg border border-white/10 p-8 overflow-hidden h-[600px]">
+      <svg className="absolute left-[250px] right-[250px] h-full" style={{ width: "calc(100% - 500px)" }} viewBox="0 0 100 600" preserveAspectRatio="none">     
         {/* Connection Lines */}
         <g>
           {edges.map((edge, index) => {
@@ -111,19 +113,7 @@ export function MappingGraph({ nodes, edges, onEdgeHover }: MappingGraphProps) {
                   transition={{ duration: 0.8, delay: index * 0.1 }}
                 />
 
-                {/* Score label on line */}
-                {isHovered && (
-                  <motion.text
-                    x={(350 + 750) / 2}
-                    y={(80 + fromIndex * 100 + 80 + toIndex * 100) / 2 - 10}
-                    className="fill-white text-xs font-mono"
-                    textAnchor="middle"
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                  >
-                    {(edge.score * 100).toFixed(1)}%
-                  </motion.text>
-                )}
+                
               </motion.g>
             );
           })}
@@ -138,10 +128,38 @@ export function MappingGraph({ nodes, edges, onEdgeHover }: MappingGraphProps) {
         </defs>
       </svg>
 
+      {/* HTML absolute nodes for score labels to avoid SVG transform stretching */}
+      {edges.map((edge, index) => {
+        const fromIndex = sourceNodes.findIndex(n => n.id === edge.from);
+        const toIndex = targetNodes.findIndex(n => n.id === edge.to);
+        const edgeKey = `${edge.from}-${edge.to}`;
+        const isHovered = hoveredEdge === edgeKey;
+        
+        if (!isHovered) return null;
+
+        return (
+          <motion.div
+            key={`score-${edgeKey}`}
+            className="absolute left-[250px] right-[250px] pointer-events-none flex justify-center z-20"
+            style={{ 
+              top: (100 + fromIndex * 70 + 20 + 100 + toIndex * 70 + 20) / 2 - 10,
+              height: "20px"
+            }}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+          >
+            <span className="text-white text-xs font-mono bg-slate-900/80 px-3 py-1 flex items-center rounded-full border border-white/10 shadow-lg">
+              {(edge.score * 100).toFixed(1)}%
+            </span>
+          </motion.div>
+        );
+      })}
+
       {/* Source Nodes (Left Side) */}
-      <div className="absolute left-8 top-8 space-y-8">
-        <div className="text-sm font-semibold text-gray-400 mb-4">
-          Source Code (Vulnerable/Patched)
+      {/* Source Nodes (Left Side) */}
+      <div className="absolute left-8 top-8 w-[200px]">
+        <div className="text-sm font-semibold text-gray-400 mb-4 h-[40px] flex items-center">
+          源端代码 (漏洞/补丁)
         </div>
         {sourceNodes.map((node, index) => (
           <motion.div
@@ -149,17 +167,18 @@ export function MappingGraph({ nodes, edges, onEdgeHover }: MappingGraphProps) {
             initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ delay: index * 0.1 }}
-            className={`px-4 py-2 rounded-lg border-2 ${getNodeColor(node.type)} backdrop-blur-sm font-mono text-sm shadow-lg`}
+            style={{ top: getYPos(index), position: 'absolute', width: '100%' }}
+            className={`px-4 py-2 rounded-lg border-2 ${getNodeColor(node.type)} backdrop-blur-sm font-mono text-sm shadow-lg z-10 flex items-center justify-between pointer-events-auto cursor-pointer`}
           >
-            {node.label}
+            <span className="truncate">{node.label}</span>
           </motion.div>
         ))}
       </div>
 
       {/* Target Nodes (Right Side) */}
-      <div className="absolute right-8 top-8 space-y-8">
-        <div className="text-sm font-semibold text-gray-400 mb-4 text-right">
-          Target Code
+      <div className="absolute right-8 top-8 w-[200px]">
+        <div className="text-sm font-semibold text-gray-400 mb-4 text-right h-[40px] flex items-center justify-end">
+          目标端代码
         </div>
         {targetNodes.map((node, index) => (
           <motion.div
@@ -167,9 +186,10 @@ export function MappingGraph({ nodes, edges, onEdgeHover }: MappingGraphProps) {
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ delay: index * 0.1 }}
-            className={`px-4 py-2 rounded-lg border-2 ${getNodeColor(node.type)} backdrop-blur-sm font-mono text-sm shadow-lg`}
+            style={{ top: getYPos(index), position: 'absolute', width: '100%' }}
+            className={`px-4 py-2 rounded-lg border-2 ${getNodeColor(node.type)} backdrop-blur-sm font-mono text-sm shadow-lg z-10 flex items-center justify-between pointer-events-auto cursor-pointer`}
           >
-            {node.label}
+            <span className="truncate">{node.label}</span>
           </motion.div>
         ))}
       </div>

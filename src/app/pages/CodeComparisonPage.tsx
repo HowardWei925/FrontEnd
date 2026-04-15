@@ -122,7 +122,7 @@ export function CodeComparisonPage() {
             className="mb-4 text-gray-400 hover:text-white"
           >
             <ArrowLeft className="w-4 h-4 mr-2" />
-            Back to Workflow
+            返回工作流
           </Button>
 
           <div className="flex items-center justify-between">
@@ -130,16 +130,16 @@ export function CodeComparisonPage() {
               <div className="flex items-center gap-3 mb-2">
                 <GitCompare className="w-8 h-8 text-cyan-400" />
                 <h1 className="text-3xl font-bold text-white">
-                  Three-way Code Comparison
+                  三方代码对比
                 </h1>
               </div>
               <p className="text-gray-400">
-                Hierarchical patch migration analysis across vulnerable, patched, and target versions
+                跨漏洞版本、修复版本和目标版本的分层补丁移植分析
               </p>
             </div>
             <div className="flex items-center gap-2 px-4 py-2 bg-cyan-500/10 border border-cyan-500/30 rounded-lg">
               <Sparkles className="w-4 h-4 text-cyan-400" />
-              <span className="text-sm text-cyan-300">AI Analysis</span>
+              <span className="text-sm text-cyan-300">AI 分析</span>
             </div>
           </div>
         </motion.div>
@@ -154,20 +154,20 @@ export function CodeComparisonPage() {
           <div className="flex items-center gap-2 mb-4">
             <div className="w-1 h-6 bg-gradient-to-b from-red-500 to-emerald-500 rounded-full" />
             <h2 className="text-xl font-semibold text-white">
-              Primary Comparison: Vulnerability vs Patch
+              基础对比：漏洞版本 vs 修复版本
             </h2>
             <div className="flex-1 h-px bg-gradient-to-r from-white/10 to-transparent ml-4" />
           </div>
 
           <div className="grid grid-cols-2 gap-4">
             <CodeBlock
-              title="Vulnerable Version (Original)"
+              title="漏洞版本 (原始代码)"
               lines={vulnerableCode}
               accentColor="red"
               onLineHover={setHoveredLine}
             />
             <CodeBlock
-              title="Patched Version (Fixed)"
+              title="修复版本 (已修复)"
               lines={patchedCode}
               accentColor="green"
               onLineHover={setHoveredLine}
@@ -185,7 +185,7 @@ export function CodeComparisonPage() {
           <div className="flex items-center gap-4 px-6 py-3 bg-slate-800/50 border border-cyan-500/30 rounded-full">
             <ArrowDown className="w-5 h-5 text-cyan-400" />
             <span className="text-sm text-gray-300 font-mono">
-              Semantic mapping & transformation
+              语义映射与代码转换
             </span>
             <ArrowDown className="w-5 h-5 text-cyan-400" />
           </div>
@@ -200,14 +200,14 @@ export function CodeComparisonPage() {
           <div className="flex items-center gap-2 mb-4">
             <div className="w-1 h-6 bg-gradient-to-b from-cyan-500 to-orange-500 rounded-full" />
             <h2 className="text-xl font-semibold text-white">
-              Migrated Result: Target Version
+              移植结果：目标版本
             </h2>
             <div className="flex-1 h-px bg-gradient-to-r from-white/10 to-transparent ml-4" />
           </div>
 
           <div className="grid grid-cols-1 gap-4">
             <CodeBlock
-              title="Target Version (After AI Migration)"
+              title="目标版本 (AI 移植后)"
               lines={targetCode}
               accentColor="cyan"
               highlightedLines={[9, 10]}
@@ -225,64 +225,63 @@ export function CodeComparisonPage() {
           <div className="flex items-center gap-2 mb-4">
             <Info className="w-5 h-5 text-orange-400" />
             <h3 className="text-lg font-semibold text-orange-300">
-              AI Patch Migration Analysis
+              AI 补丁移植分析
             </h3>
           </div>
 
           <div className="space-y-4">
             <div className="grid grid-cols-3 gap-4 text-sm">
               <div className="bg-slate-800/50 rounded p-3 border border-white/5">
-                <p className="text-gray-500 mb-1">Vulnerability Type</p>
-                <p className="text-white font-mono">Buffer Overflow (CWE-120)</p>
+                <p className="text-gray-500 mb-1">漏洞类型</p>
+                <p className="text-white font-mono">缓冲区溢出 (CWE-120)</p>
               </div>
               <div className="bg-slate-800/50 rounded p-3 border border-white/5">
-                <p className="text-gray-500 mb-1">Patch Strategy</p>
-                <p className="text-white font-mono">Bounds Checking</p>
+                <p className="text-gray-500 mb-1">修复策略</p>
+                <p className="text-white font-mono">边界检查</p>
               </div>
               <div className="bg-slate-800/50 rounded p-3 border border-white/5">
-                <p className="text-gray-500 mb-1">Confidence Score</p>
+                <p className="text-gray-500 mb-1">置信度评分</p>
                 <p className="text-emerald-400 font-mono">97.8%</p>
               </div>
             </div>
 
             <div className="bg-slate-800/30 rounded-lg p-4 border border-white/5">
               <h4 className="text-sm font-semibold text-gray-300 mb-2">
-                Semantic Transformations Applied:
+                已应用的语义转换：
               </h4>
               <div className="space-y-2 font-mono text-sm">
                 <div className="flex items-center gap-3">
                   <div className="w-2 h-2 bg-cyan-400 rounded-full" />
-                  <span className="text-gray-400">Function name:</span>
+                  <span className="text-gray-400">函数名:</span>
                   <span className="text-red-400">process_input()</span>
                   <span className="text-gray-600">→</span>
                   <span className="text-emerald-400">handle_data()</span>
                 </div>
                 <div className="flex items-center gap-3">
                   <div className="w-2 h-2 bg-cyan-400 rounded-full" />
-                  <span className="text-gray-400">Variable name:</span>
+                  <span className="text-gray-400">变量名:</span>
                   <span className="text-red-400">buffer</span>
                   <span className="text-gray-600">→</span>
                   <span className="text-emerald-400">temp_buf</span>
                 </div>
                 <div className="flex items-center gap-3">
                   <div className="w-2 h-2 bg-cyan-400 rounded-full" />
-                  <span className="text-gray-400">Parameter name:</span>
+                  <span className="text-gray-400">参数名:</span>
                   <span className="text-red-400">input</span>
                   <span className="text-gray-600">→</span>
                   <span className="text-emerald-400">user_input</span>
                 </div>
                 <div className="flex items-center gap-3">
                   <div className="w-2 h-2 bg-orange-400 rounded-full" />
-                  <span className="text-gray-400">Core fix:</span>
-                  <span className="text-orange-300">strcpy() replaced with strncpy() + null termination</span>
+                  <span className="text-gray-400">核心修复:</span>
+                  <span className="text-orange-300">使用 strncpy() 替换 strcpy() 并添加空字符结尾</span>
                 </div>
               </div>
             </div>
 
             <div className="bg-gradient-to-r from-emerald-900/20 to-emerald-900/10 border border-emerald-500/30 rounded-lg p-4">
               <p className="text-sm text-emerald-300">
-                <strong>✓ Verification Passed:</strong> The patch has been successfully migrated to the target version 
-                while preserving the security fix and adapting to the different code structure.
+                <strong>✓ 验证通过：</strong> 补丁已成功移植到目标版本，在保留安全修复的同时适应了新的代码结构。
               </p>
             </div>
           </div>
@@ -294,7 +293,7 @@ export function CodeComparisonPage() {
               className="w-full bg-gradient-to-r from-cyan-600 to-teal-600 hover:from-cyan-500 hover:to-teal-500 text-white"
             >
               <Network className="w-4 h-4 mr-2" />
-              View Detailed Semantic Mapping Analysis
+              查看详细的语义映射分析
               <ArrowRight className="w-4 h-4 ml-2" />
             </Button>
           </div>

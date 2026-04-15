@@ -60,23 +60,23 @@ export function TaskCreationPage() {
           <div className="flex items-center justify-center gap-3 mb-4">
             <Shield className="w-10 h-10 text-cyan-400" />
             <h1 className="text-5xl font-bold bg-gradient-to-r from-cyan-400 via-teal-400 to-orange-400 bg-clip-text text-transparent">
-              AI Patch Migration System
+              AI 补丁移植系统
             </h1>
           </div>
           <p className="text-gray-400 text-lg max-w-2xl mx-auto">
-            Automatically migrate security patches across different code versions using advanced semantic analysis and AI-powered transformation
+            通过先进的语义分析和 AI 驱动的转换，自动在不同代码版本之间移植安全补丁
           </p>
           
           {/* Stats Bar */}
           <div className="flex items-center justify-center gap-8 mt-8">
             <div className="flex items-center gap-2">
               <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
-              <span className="text-sm text-gray-400">System Online</span>
+              <span className="text-sm text-gray-400">系统在线</span>
             </div>
             <div className="h-4 w-px bg-white/10" />
             <div className="flex items-center gap-2">
               <Sparkles className="w-4 h-4 text-purple-400" />
-              <span className="text-sm text-gray-400">AI-Powered Analysis</span>
+              <span className="text-sm text-gray-400">AI 驱动分析</span>
             </div>
           </div>
         </motion.div>
@@ -90,24 +90,24 @@ export function TaskCreationPage() {
             className="mb-8"
           >
             <h2 className="text-2xl font-semibold text-white mb-2">
-              Configure Code Versions
+              配置代码版本
             </h2>
             <p className="text-gray-400">
-              Provide the vulnerable, patched, and target versions for automated patch migration
+              提供漏洞版本、修复版本和目标版本，以进行自动补丁移植
             </p>
           </motion.div>
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             <CodeVersionInput
-              title="Vulnerable Version"
+              title="漏洞版本 (Vulnerable)"
               accentColor="red"
             />
             <CodeVersionInput
-              title="Patched Version"
+              title="修复版本 (Patched)"
               accentColor="green"
             />
             <CodeVersionInput
-              title="Target Version"
+              title="目标版本 (Target)"
               accentColor="blue"
             />
           </div>
@@ -138,7 +138,7 @@ export function TaskCreationPage() {
             
             <span className="relative flex items-center gap-3">
               <Play className="w-5 h-5" />
-              Start Patch Migration
+              开始补丁移植
               <motion.div
                 animate={{ x: isHovered ? 5 : 0 }}
                 transition={{ duration: 0.3 }}

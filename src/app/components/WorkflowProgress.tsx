@@ -8,10 +8,10 @@ interface WorkflowStep {
 }
 
 const steps: WorkflowStep[] = [
-  { id: 1, name: 'Patch Locate', description: 'Identifying vulnerability fix' },
-  { id: 2, name: 'Semantic Mapping', description: 'Analyzing code structure' },
-  { id: 3, name: 'Patch Transfer', description: 'Applying changes' },
-  { id: 4, name: 'Verification', description: 'Testing results' },
+  { id: 1, name: '补丁定位', description: '识别漏洞修复' },
+  { id: 2, name: '语义映射', description: '分析代码结构' },
+  { id: 3, name: '补丁迁移', description: '应用更改' },
+  { id: 4, name: '验证', description: '测试结果' },
 ];
 
 interface WorkflowProgressProps {

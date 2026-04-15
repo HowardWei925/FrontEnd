@@ -79,7 +79,7 @@ export function CodeVersionInput({ title, accentColor, onInputChange }: CodeVers
             className={`flex-1 ${inputType === 'git' ? 'bg-white/10' : 'bg-transparent border-white/10'}`}
           >
             <GitBranch className="w-4 h-4 mr-2" />
-            Git Repository
+            Git 仓库
           </Button>
           <Button
             variant={inputType === 'upload' ? 'default' : 'outline'}
@@ -88,7 +88,7 @@ export function CodeVersionInput({ title, accentColor, onInputChange }: CodeVers
             className={`flex-1 ${inputType === 'upload' ? 'bg-white/10' : 'bg-transparent border-white/10'}`}
           >
             <Upload className="w-4 h-4 mr-2" />
-            Upload
+            上传
           </Button>
         </div>
 
@@ -100,9 +100,9 @@ export function CodeVersionInput({ title, accentColor, onInputChange }: CodeVers
             className="space-y-4"
           >
             <div>
-              <label className="text-sm text-gray-400 mb-2 block flex items-center gap-2">
+              <label className="text-sm text-gray-400 mb-2 flex items-center gap-2">
                 <Link2 className="w-3.5 h-3.5" />
-                Repository URL
+                仓库链接 (URL)
               </label>
               <Input
                 type="text"
@@ -116,9 +116,9 @@ export function CodeVersionInput({ title, accentColor, onInputChange }: CodeVers
               />
             </div>
             <div>
-              <label className="text-sm text-gray-400 mb-2 block flex items-center gap-2">
+              <label className="text-sm text-gray-400 mb-2 flex items-center gap-2">
                 <GitBranch className="w-3.5 h-3.5" />
-                Branch / Tag
+                分支 / 标签
               </label>
               <Input
                 type="text"
@@ -143,10 +143,10 @@ export function CodeVersionInput({ title, accentColor, onInputChange }: CodeVers
           >
             <Upload className={`w-8 h-8 mx-auto mb-3 ${styles.icon}`} />
             <p className="text-sm text-gray-400 mb-1">
-              Click to upload or drag and drop
+              点击上传或拖拽文件到此处
             </p>
             <p className="text-xs text-gray-500">
-              ZIP, TAR.GZ or source files
+              支持 ZIP, TAR.GZ 压缩包或散列源代码文件
             </p>
           </motion.div>
         )}

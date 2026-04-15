@@ -18,23 +18,23 @@ interface CodeBlockProps {
 
 const accentColors = {
   red: {
-    border: 'border-red-500/30',
+    border: 'border-red-400',
     bg: 'bg-red-500/5',
-    text: 'text-red-400',
+    text: 'text-red-600',
     lineBg: 'bg-red-500/10',
     lineIndicator: 'bg-red-500',
   },
   green: {
-    border: 'border-emerald-500/30',
+    border: 'border-emerald-400',
     bg: 'bg-emerald-500/5',
-    text: 'text-emerald-400',
+    text: 'text-emerald-600',
     lineBg: 'bg-emerald-500/10',
     lineIndicator: 'bg-emerald-500',
   },
   cyan: {
-    border: 'border-cyan-500/30',
+    border: 'border-cyan-400',
     bg: 'bg-cyan-500/5',
-    text: 'text-cyan-400',
+    text: 'text-cyan-600',
     lineBg: 'bg-cyan-500/10',
     lineIndicator: 'bg-cyan-500',
   },
@@ -69,7 +69,7 @@ export function CodeBlock({
       case 'highlight':
         return 'bg-orange-500/10 border-l-2 border-orange-500';
       default:
-        return 'hover:bg-white/5';
+        return 'hover:bg-white';
     }
   };
 
@@ -85,7 +85,7 @@ export function CodeBlock({
   };
 
   return (
-    <div className={`bg-slate-900/50 backdrop-blur-sm border ${colors.border} rounded-lg overflow-hidden`}>
+    <div className={`bg-white/80 backdrop-blur-sm border ${colors.border} rounded-lg overflow-hidden`}>
       {/* Header */}
       <div className={`${colors.bg} border-b ${colors.border} px-4 py-3 flex items-center justify-between`}>
         <div className="flex items-center gap-3">
@@ -98,9 +98,9 @@ export function CodeBlock({
           title="Copy code"
         >
           {copied ? (
-            <Check className="w-4 h-4 text-emerald-400" />
+            <Check className="w-4 h-4 text-emerald-600" />
           ) : (
-            <Copy className="w-4 h-4 text-gray-400" />
+            <Copy className="w-4 h-4 text-slate-600" />
           )}
         </button>
       </div>
@@ -119,17 +119,17 @@ export function CodeBlock({
               onMouseLeave={() => onLineHover?.(null)}
             >
               {/* Line Number */}
-              <div className="select-none text-gray-600 px-4 py-1 text-right min-w-[4rem] border-r border-white/5">
+              <div className="select-none text-gray-600 px-4 py-1 text-right min-w-[4rem] border-r border-slate-100">
                 {line.number}
               </div>
               
               {/* Diff Prefix */}
-              <div className="select-none px-2 py-1 text-gray-500">
+              <div className="select-none px-2 py-1 text-gray-600">
                 {getLinePrefix(line)}
               </div>
 
               {/* Code Content */}
-              <div className="flex-1 px-2 py-1 text-gray-300 overflow-x-auto">
+              <div className="flex-1 px-2 py-1 text-slate-600 overflow-x-auto">
                 <code>{line.content}</code>
               </div>
             </motion.div>

@@ -14,13 +14,13 @@ export function TaskCreationPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 relative overflow-hidden">
+    <div className="min-h-screen bg-white  relative overflow-hidden">
       {/* Animated Background Grid */}
       <div className="absolute inset-0 opacity-10">
         <div className="absolute inset-0" style={{
           backgroundImage: `
-            linear-gradient(to right, rgba(6, 182, 212, 0.2) 1px, transparent 1px),
-            linear-gradient(to bottom, rgba(6, 182, 212, 0.2) 1px, transparent 1px)
+            linear-gradient(to right, rgba(0, 0, 0, 0.05) 1px, transparent 1px),
+            linear-gradient(to bottom, rgba(0, 0, 0, 0.05) 1px, transparent 1px)
           `,
           backgroundSize: '50px 50px'
         }} />
@@ -28,7 +28,7 @@ export function TaskCreationPage() {
 
       {/* Gradient Orbs */}
       <motion.div
-        className="absolute top-20 right-20 w-96 h-96 bg-cyan-500/20 rounded-full blur-3xl"
+        className="absolute top-20 right-20 w-96 h-96 bg-cyan-50/50 rounded-full blur-2xl"
         animate={{
           scale: [1, 1.2, 1],
           opacity: [0.2, 0.3, 0.2],
@@ -39,7 +39,7 @@ export function TaskCreationPage() {
         }}
       />
       <motion.div
-        className="absolute bottom-20 left-20 w-96 h-96 bg-orange-500/20 rounded-full blur-3xl"
+        className="absolute bottom-20 left-20 w-96 h-96 bg-orange-50/50 rounded-full blur-2xl"
         animate={{
           scale: [1.2, 1, 1.2],
           opacity: [0.3, 0.2, 0.3],
@@ -58,12 +58,12 @@ export function TaskCreationPage() {
           className="text-center mb-16"
         >
           <div className="flex items-center justify-center gap-3 mb-4">
-            <Shield className="w-10 h-10 text-cyan-400" />
-            <h1 className="text-5xl font-bold bg-gradient-to-r from-cyan-400 via-teal-400 to-orange-400 bg-clip-text text-transparent">
+            <Shield className="w-10 h-10 text-cyan-600" />
+            <h1 className="text-5xl font-bold text-slate-900">
               AI 补丁移植系统
             </h1>
           </div>
-          <p className="text-gray-400 text-lg max-w-2xl mx-auto">
+          <p className="text-slate-600 text-lg max-w-2xl mx-auto">
             通过先进的语义分析和 AI 驱动的转换，自动在不同代码版本之间移植安全补丁
           </p>
           
@@ -71,12 +71,12 @@ export function TaskCreationPage() {
           <div className="flex items-center justify-center gap-8 mt-8">
             <div className="flex items-center gap-2">
               <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
-              <span className="text-sm text-gray-400">系统在线</span>
+              <span className="text-sm text-slate-600">系统在线</span>
             </div>
             <div className="h-4 w-px bg-white/10" />
             <div className="flex items-center gap-2">
-              <Sparkles className="w-4 h-4 text-purple-400" />
-              <span className="text-sm text-gray-400">AI 驱动分析</span>
+              <Sparkles className="w-4 h-4 text-purple-600" />
+              <span className="text-sm text-slate-600">AI 驱动分析</span>
             </div>
           </div>
         </motion.div>
@@ -89,10 +89,10 @@ export function TaskCreationPage() {
             transition={{ delay: 0.2 }}
             className="mb-8"
           >
-            <h2 className="text-2xl font-semibold text-white mb-2">
+            <h2 className="text-2xl font-semibold text-slate-900 mb-2">
               配置代码版本
             </h2>
-            <p className="text-gray-400">
+            <p className="text-slate-600">
               提供漏洞版本、修复版本和目标版本，以进行自动补丁移植
             </p>
           </motion.div>
@@ -124,11 +124,11 @@ export function TaskCreationPage() {
             onClick={handleStartMigration}
             onMouseEnter={() => setIsHovered(true)}
             onMouseLeave={() => setIsHovered(false)}
-            className="group relative px-12 py-6 text-lg bg-gradient-to-r from-cyan-600 via-teal-600 to-orange-600 hover:from-cyan-500 hover:via-teal-500 hover:to-orange-500 text-white rounded-xl shadow-2xl shadow-cyan-500/50 hover:shadow-cyan-500/70 transition-all duration-300"
+            className="group relative px-12 py-6 text-lg bg-slate-900 hover:bg-slate-800 text-white rounded-xl shadow-lg transition-all duration-300 hover:shadow-xl hover:-translate-y-0.5 font-medium"
           >
             {/* Glow Effect */}
             <motion.div
-              className="absolute inset-0 rounded-xl bg-gradient-to-r from-cyan-500 via-teal-500 to-orange-500 blur-xl opacity-50"
+              className="absolute inset-0 rounded-xl hidden"
               animate={{
                 scale: isHovered ? 1.1 : 1,
                 opacity: isHovered ? 0.7 : 0.5,
@@ -167,10 +167,10 @@ export function TaskCreationPage() {
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.7 + index * 0.1 }}
-              className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-lg p-4 hover:border-cyan-500/30 transition-colors"
+              className="bg-white backdrop-blur-sm border border-slate-200 rounded-lg p-4 hover:border-cyan-400 transition-colors"
             >
-              <p className="text-xs text-gray-500 mb-1">{item.label}</p>
-              <p className="text-sm text-cyan-400 font-semibold">{item.value}</p>
+              <p className="text-xs text-gray-600 mb-1">{item.label}</p>
+              <p className="text-sm text-cyan-600 font-semibold">{item.value}</p>
             </motion.div>
           ))}
         </motion.div>

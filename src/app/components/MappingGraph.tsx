@@ -31,13 +31,13 @@ export function MappingGraph({ nodes, edges, onEdgeHover }: MappingGraphProps) {
   const getNodeColor = (type: string) => {
     switch (type) {
       case 'variable':
-        return 'bg-cyan-500/20 border-cyan-500 text-cyan-300';
+        return 'bg-cyan-500/20 border-cyan-500 text-cyan-700';
       case 'function':
-        return 'bg-orange-500/20 border-orange-500 text-orange-300';
+        return 'bg-orange-500/20 border-orange-500 text-orange-700';
       case 'type':
-        return 'bg-purple-500/20 border-purple-500 text-purple-300';
+        return 'bg-purple-500/20 border-purple-500 text-purple-700';
       default:
-        return 'bg-gray-500/20 border-gray-500 text-gray-300';
+        return 'bg-gray-500/20 border-gray-500 text-slate-600';
     }
   };
 
@@ -61,7 +61,7 @@ export function MappingGraph({ nodes, edges, onEdgeHover }: MappingGraphProps) {
   };
 
   return (
-    <div className="relative bg-slate-900/30 rounded-lg border border-white/10 p-8 overflow-hidden h-[600px]">
+    <div className="relative bg-white/60 rounded-lg border border-slate-200 p-8 overflow-hidden h-[600px]">
       <svg className="absolute left-[250px] right-[250px] h-full" style={{ width: "calc(100% - 500px)" }} viewBox="0 0 100 600" preserveAspectRatio="none">     
         {/* Connection Lines */}
         <g>
@@ -86,12 +86,12 @@ export function MappingGraph({ nodes, edges, onEdgeHover }: MappingGraphProps) {
                   onEdgeHover?.(null);
                 }}
               >
-                {/* Glow effect for hovered edge */}
+                {/* Hover effect for hovered edge */}
                 {isHovered && (
                   <motion.path
                     d={calculatePath(fromIndex, toIndex)}
                     fill="none"
-                    stroke="url(#gradient-glow)"
+                    stroke="#0284c7"
                     strokeWidth="8"
                     className="opacity-50 blur-sm"
                     initial={{ pathLength: 0 }}
@@ -99,7 +99,7 @@ export function MappingGraph({ nodes, edges, onEdgeHover }: MappingGraphProps) {
                     transition={{ duration: 0.5 }}
                   />
                 )}
-                
+
                 {/* Main line */}
                 <motion.path
                   d={calculatePath(fromIndex, toIndex)}
@@ -119,13 +119,6 @@ export function MappingGraph({ nodes, edges, onEdgeHover }: MappingGraphProps) {
           })}
         </g>
 
-        {/* Gradient Definitions */}
-        <defs>
-          <linearGradient id="gradient-glow" x1="0%" y1="0%" x2="100%" y2="0%">
-            <stop offset="0%" stopColor="#06b6d4" stopOpacity="0.8" />
-            <stop offset="100%" stopColor="#f97316" stopOpacity="0.8" />
-          </linearGradient>
-        </defs>
       </svg>
 
       {/* HTML absolute nodes for score labels to avoid SVG transform stretching */}
@@ -148,7 +141,7 @@ export function MappingGraph({ nodes, edges, onEdgeHover }: MappingGraphProps) {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
           >
-            <span className="text-white text-xs font-mono bg-slate-900/80 px-3 py-1 flex items-center rounded-full border border-white/10 shadow-lg">
+            <span className="text-slate-900 text-xs font-mono bg-slate-100 px-3 py-1 flex items-center rounded-full border border-slate-200 shadow-lg">
               {(edge.score * 100).toFixed(1)}%
             </span>
           </motion.div>
@@ -158,7 +151,7 @@ export function MappingGraph({ nodes, edges, onEdgeHover }: MappingGraphProps) {
       {/* Source Nodes (Left Side) */}
       {/* Source Nodes (Left Side) */}
       <div className="absolute left-8 top-8 w-[200px]">
-        <div className="text-sm font-semibold text-gray-400 mb-4 h-[40px] flex items-center">
+        <div className="text-sm font-semibold text-slate-600 mb-4 h-[40px] flex items-center">
           源端代码 (漏洞/补丁)
         </div>
         {sourceNodes.map((node, index) => (
@@ -177,7 +170,7 @@ export function MappingGraph({ nodes, edges, onEdgeHover }: MappingGraphProps) {
 
       {/* Target Nodes (Right Side) */}
       <div className="absolute right-8 top-8 w-[200px]">
-        <div className="text-sm font-semibold text-gray-400 mb-4 text-right h-[40px] flex items-center justify-end">
+        <div className="text-sm font-semibold text-slate-600 mb-4 text-right h-[40px] flex items-center justify-end">
           目标端代码
         </div>
         {targetNodes.map((node, index) => (

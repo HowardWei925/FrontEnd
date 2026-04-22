@@ -1,10 +1,15 @@
 import { useState } from 'react';
 import { motion } from 'motion/react';
-import { ArrowLeft, Network, TrendingUp, Code2, Hash, GitBranch, CheckCircle2, AlertCircle } from 'lucide-react';
-import { useNavigate } from 'react-router';
+import { ArrowLeft, Network, TrendingUp, Code2, Hash, GitBranch, CheckCircle2, AlertCircle, BarChart3, Share2 } from 'lucide-react';
+import { useNavigate, useLocation } from 'react-router';
 import { Button } from '../components/ui/button';
 import { MappingGraph } from '../components/MappingGraph';
 
+// 新增：导入 AST 和 PDG 的独立组件
+import { ASTComparisonView } from './ASTComparisonView';
+import { PDGView } from './PDGView';
+
+// 原有 Mapping 接口定义（保持不变）
 interface Mapping {
   id: string;
   sourceSymbol: string;
@@ -17,7 +22,9 @@ interface Mapping {
   status: 'confirmed' | 'suggested' | 'uncertain';
 }
 
+// 原有 mappingData（保持不变）
 const mappingData: Mapping[] = [
+  // ... 保持原有所有数据不变
   {
     id: '1',
     sourceSymbol: 'process_input()',
@@ -86,6 +93,7 @@ const mappingData: Mapping[] = [
   },
 ];
 
+// 原有 graphNodes（保持不变）
 const graphNodes = [
   { id: 'fn1', label: 'process_input()', type: 'function' as const, side: 'source' as const },
   { id: 'var1', label: 'buffer', type: 'variable' as const, side: 'source' as const },
@@ -93,7 +101,6 @@ const graphNodes = [
   { id: 'fn2', label: 'strcpy()', type: 'function' as const, side: 'source' as const },
   { id: 'fn3', label: 'printf()', type: 'function' as const, side: 'source' as const },
   { id: 'type1', label: 'char*', type: 'type' as const, side: 'source' as const },
-
   { id: 'fn4', label: 'handle_data()', type: 'function' as const, side: 'target' as const },
   { id: 'var3', label: 'temp_buf', type: 'variable' as const, side: 'target' as const },
   { id: 'var4', label: 'user_input', type: 'variable' as const, side: 'target' as const },
@@ -102,24 +109,78 @@ const graphNodes = [
   { id: 'type2', label: 'char*', type: 'type' as const, side: 'target' as const },
 ];
 
+// 原有 graphEdges（保持不变）
 const graphEdges = [
-  { from: 'fn1', to: 'fn4', score: 0.96, astMatch: 0.94, dataflowMatch: 0.98 }, 
+  { from: 'fn1', to: 'fn4', score: 0.96, astMatch: 0.94, dataflowMatch: 0.98 },
   { from: 'var1', to: 'var3', score: 0.91, astMatch: 0.89, dataflowMatch: 0.92 },
   { from: 'var2', to: 'var4', score: 0.91, astMatch: 0.87, dataflowMatch: 0.95 },
-  { from: 'fn2', to: 'fn5', score: 0.82, astMatch: 0.78, dataflowMatch: 0.85 }, 
-  { from: 'fn3', to: 'fn6', score: 0.70, astMatch: 0.72, dataflowMatch: 0.68 }, 
-  { from: 'type1', to: 'type2', score: 1.0, astMatch: 1.0, dataflowMatch: 1.0 }, 
+  { from: 'fn2', to: 'fn5', score: 0.82, astMatch: 0.78, dataflowMatch: 0.85 },
+  { from: 'fn3', to: 'fn6', score: 0.70, astMatch: 0.72, dataflowMatch: 0.68 },
+  { from: 'type1', to: 'type2', score: 1.0, astMatch: 1.0, dataflowMatch: 1.0 },
 ];
 
+// 新增：导航栏组件
+function NavigationTabs({ currentTab, onTabChange }: { currentTab: string; onTabChange: (tab: string) => void }) {
+  return (
+    <div className="mb-6 border-b border-slate-200">
+      <div className="flex gap-1">
+        <button
+          onClick={() => onTabChange('ast')}
+          className={`px-4 py-2 rounded-t-lg text-sm font-medium transition-all flex items-center gap-2 ${
+            currentTab === 'ast'
+              ? 'bg-cyan-500/10 text-cyan-700 border-b-2 border-cyan-500'
+              : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+          }`}
+        >
+          <BarChart3 className="w-4 h-4" />
+          AST对比图
+        </button>
+        <button
+          onClick={() => onTabChange('pdg')}
+          className={`px-4 py-2 rounded-t-lg text-sm font-medium transition-all flex items-center gap-2 ${
+            currentTab === 'pdg'
+              ? 'bg-cyan-500/10 text-cyan-700 border-b-2 border-cyan-500'
+              : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+          }`}
+        >
+          <GitBranch className="w-4 h-4" />
+          程序依赖图 (PDG)
+        </button>
+        <button
+          onClick={() => onTabChange('mapping')}
+          className={`px-4 py-2 rounded-t-lg text-sm font-medium transition-all flex items-center gap-2 ${
+            currentTab === 'mapping'
+              ? 'bg-cyan-500/10 text-cyan-700 border-b-2 border-cyan-500'
+              : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+          }`}
+        >
+          <Share2 className="w-4 h-4" />
+          语义映射
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// 导出主组件
 export function SemanticMappingPage() {
   const navigate = useNavigate();
-  const [selectedMapping, setSelectedMapping] = useState<Mapping | null>(null); 
+  const location = useLocation();
+  const [selectedMapping, setSelectedMapping] = useState<Mapping | null>(null);
   const [hoveredEdge, setHoveredEdge] = useState<any>(null);
-  const [filter类型, setFilter类型] = useState<'all' | 'variable' | 'function' | 'type'>('all');
+  const [filterType, setFilterType] = useState<'all' | 'variable' | 'function' | 'type'>('all');
 
-  const filteredMappings = filter类型 === 'all' 
-    ? mappingData 
-    : mappingData.filter(m => m.type === filter类型);
+  // 从 URL 获取当前 tab，默认为 mapping
+  const searchParams = new URLSearchParams(location.search);
+  const currentTab = searchParams.get('tab') || 'mapping';
+
+  const handleTabChange = (tab: string) => {
+    navigate(`/semantic-mapping?tab=${tab}`);
+  };
+
+  const filteredMappings = filterType === 'all'
+    ? mappingData
+    : mappingData.filter(m => m.type === filterType);
 
   const getScoreColor = (score: number) => {
     if (score >= 0.9) return 'text-emerald-600';
@@ -135,7 +196,7 @@ export function SemanticMappingPage() {
     return 'bg-red-500';
   };
 
-  const get状态Icon = (status: string) => {
+  const getStatusIcon = (status: string) => {
     switch (status) {
       case 'confirmed':
         return <CheckCircle2 className="w-4 h-4 text-emerald-600" />;
@@ -148,15 +209,243 @@ export function SemanticMappingPage() {
     }
   };
 
+  // 根据 currentTab 显示不同内容
+  const renderContent = () => {
+    if (currentTab === 'ast') {
+      return <ASTComparisonView />;
+    }
+    if (currentTab === 'pdg') {
+      return <PDGView />;
+    }
+    // mapping 视图（原页面内容）
+    return (
+      <>
+        {/* Filter Buttons */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.2 }}
+          className="mb-6"
+        >
+          <div className="flex items-center gap-3">
+            <span className="text-sm text-slate-600">类型筛选:</span>
+            <div className="flex gap-2">
+              {(['all', 'function', 'variable', 'type'] as const).map((type) => (
+                <button
+                  key={type}
+                  onClick={() => setFilterType(type)}
+                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                    filterType === type
+                      ? 'bg-cyan-500/20 border-2 border-cyan-500 text-cyan-700'
+                      : 'bg-slate-100/50 border border-slate-200 text-slate-600 hover:border-cyan-400'
+                  }`}
+                >
+                  {{ all: '全部', function: '函数', variable: '变量', type: '类型' }[type]}
+                </button>
+              ))}
+            </div>
+          </div>
+        </motion.div>
+
+        {/* 映射详情对照表 */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.3 }}
+        >
+          <div className="flex items-center gap-2 mb-4">
+            <Code2 className="w-5 h-5 text-cyan-600" />
+            <h2 className="text-xl font-semibold text-slate-900">
+              映射详情对照表
+            </h2>
+            <div className="flex-1 h-px bg-white ml-4" />
+          </div>
+
+          <div className="bg-white/60 backdrop-blur-md border border-slate-200 rounded-xl overflow-hidden shadow-xl">
+            {/* Table Header */}
+            <div className="grid grid-cols-12 gap-4 bg-slate-100/50 border-b border-slate-200 px-6 py-4 text-sm font-semibold text-slate-600">
+              <div className="col-span-2">源符号</div>
+              <div className="col-span-2">目标符号</div>
+              <div className="col-span-1">类型</div>
+              <div className="col-span-2">AST 匹配度</div>
+              <div className="col-span-2">数据流匹配度</div>
+              <div className="col-span-2">总分</div>
+              <div className="col-span-1">状态</div>
+            </div>
+
+            {/* Table Rows */}
+            <div className="divide-y divide-white/5">
+              {filteredMappings.map((mapping, index) => (
+                <motion.div
+                  key={mapping.id}
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: index * 0.05 }}
+                  onClick={() => setSelectedMapping(mapping)}
+                  className={`grid grid-cols-12 gap-4 px-6 py-4 cursor-pointer transition-colors ${
+                    selectedMapping?.id === mapping.id
+                      ? 'bg-cyan-500/10 border-l-4 border-cyan-500'
+                      : 'hover:bg-white'
+                  }`}
+                >
+                  <div className="col-span-2 font-mono text-sm text-red-600">{mapping.sourceSymbol}</div>
+                  <div className="col-span-2 font-mono text-sm text-emerald-600">{mapping.targetSymbol}</div>
+                  <div className="col-span-1">
+                    <span className={`px-2 py-1 rounded text-xs font-medium ${
+                      mapping.type === 'function' ? 'bg-orange-500/20 text-orange-700' :
+                      mapping.type === 'variable' ? 'bg-cyan-500/20 text-cyan-700' :
+                      'bg-purple-500/20 text-purple-700'
+                    }`}>
+                      {mapping.type}
+                    </span>
+                  </div>
+                  <div className="col-span-2">
+                    <div className="flex items-center gap-2">
+                      <div className="flex-1 bg-slate-100/50 rounded-full h-2 overflow-hidden">
+                        <motion.div
+                          initial={{ width: 0 }}
+                          animate={{ width: `${mapping.astMatch * 100}%` }}
+                          transition={{ delay: index * 0.05 + 0.2 }}
+                          className={`h-full ${getScoreBgColor(mapping.astMatch)}`}
+                        />
+                      </div>
+                      <span className={`text-xs font-mono ${getScoreColor(mapping.astMatch)}`}>
+                        {(mapping.astMatch * 100).toFixed(0)}%
+                      </span>
+                    </div>
+                  </div>
+                  <div className="col-span-2">
+                    <div className="flex items-center gap-2">
+                      <div className="flex-1 bg-slate-100/50 rounded-full h-2 overflow-hidden">
+                        <motion.div
+                          initial={{ width: 0 }}
+                          animate={{ width: `${mapping.dataflowMatch * 100}%` }}
+                          transition={{ delay: index * 0.05 + 0.3 }}
+                          className={`h-full ${getScoreBgColor(mapping.dataflowMatch)}`}
+                        />
+                      </div>
+                      <span className={`text-xs font-mono ${getScoreColor(mapping.dataflowMatch)}`}>
+                        {(mapping.dataflowMatch * 100).toFixed(0)}%
+                      </span>
+                    </div>
+                  </div>
+                  <div className="col-span-2">
+                    <div className="flex items-center gap-2">
+                      <div className="flex-1 bg-slate-100/50 rounded-full h-2 overflow-hidden">
+                        <motion.div
+                          initial={{ width: 0 }}
+                          animate={{ width: `${mapping.overallScore * 100}%` }}
+                          transition={{ delay: index * 0.05 + 0.4 }}
+                          className={`h-full ${getScoreBgColor(mapping.overallScore)}`}
+                        />
+                      </div>
+                      <span className={`text-sm font-bold ${getScoreColor(mapping.overallScore)}`}>
+                        {(mapping.overallScore * 100).toFixed(0)}%
+                      </span>
+                    </div>
+                  </div>
+                  <div className="col-span-1 flex items-center">
+                    {getStatusIcon(mapping.status)}
+                  </div>
+                </motion.div>
+              ))}
+            </div>
+          </div>
+        </motion.div>
+
+        {/* Selected 映射详细信息 */}
+        {selectedMapping && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="mt-6 bg-white backdrop-blur-md border border-cyan-500/50 rounded-xl p-8 shadow-[0_0_30px_-5px_rgba(6,182,212,0.3)] transition-all duration-300"
+          >
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-3">
+                <Hash className="w-5 h-5 text-cyan-600" />
+                <h3 className="text-lg font-semibold text-slate-900">映射详细信息</h3>
+              </div>
+              <button
+                onClick={() => setSelectedMapping(null)}
+                className="text-slate-600 hover:text-slate-900 transition-colors"
+              >
+                ✕
+              </button>
+            </div>
+            <div className="grid grid-cols-2 gap-6">
+              <div>
+                <p className="text-sm text-gray-600 mb-2">上下文分析</p>
+                <p className="text-slate-600">{selectedMapping.context}</p>
+              </div>
+              <div>
+                <p className="text-sm text-gray-600 mb-2">采用的匹配技术</p>
+                <div className="space-y-2 text-sm">
+                  <div className="flex items-center gap-2">
+                    <div className="w-2 h-2 bg-cyan-400 rounded-full" />
+                    <span className="text-slate-600">抽象语法树 (AST) 对比分析</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="w-2 h-2 bg-cyan-400 rounded-full" />
+                    <span className="text-slate-600">控制流与数据流分析</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="w-2 h-2 bg-cyan-400 rounded-full" />
+                    <span className="text-slate-600">类型 system compatibility check</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="w-2 h-2 bg-cyan-400 rounded-full" />
+                    <span className="text-slate-600">语义嵌入相似度计算 (AI 模型)</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div className="mt-4 pt-4 border-t border-slate-200">
+              <div className="flex items-center gap-2">
+                {getStatusIcon(selectedMapping.status)}
+                <span className="text-sm text-slate-600">
+                  状态: <span className="text-slate-900 font-semibold capitalize">{selectedMapping.status}</span>
+                </span>
+              </div>
+            </div>
+          </motion.div>
+        )}
+
+        {/* Legend */}
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.5 }}
+          className="mt-8 bg-white/60 border border-slate-200 rounded-lg p-4"
+        >
+          <div className="flex items-center gap-8 text-sm">
+            <div className="flex items-center gap-2">
+              <div className="w-3 h-3 bg-emerald-500 rounded" />
+              <span className="text-slate-600">极好 (90-100%)</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-3 h-3 bg-cyan-500 rounded" />
+              <span className="text-slate-600">良好 (70-89%)</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-3 h-3 bg-orange-500 rounded" />
+              <span className="text-slate-600">一般 (50-69%)</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-3 h-3 bg-red-500 rounded" />
+              <span className="text-slate-600">较低 (&lt;50%)</span>
+            </div>
+          </div>
+        </motion.div>
+      </>
+    );
+  };
+
   return (
-    <div className="min-h-screen bg-white  relative overflow-hidden">
+    <div className="min-h-screen bg-white relative overflow-hidden">
       {/* Background Grid */}
       <div className="absolute inset-0 opacity-5">
         <div className="absolute inset-0" style={{
-          backgroundImage: `
-            
-            
-          `,
+          backgroundImage: ``,
           backgroundSize: '40px 40px',
         }} />
       </div>
@@ -206,325 +495,102 @@ export function SemanticMappingPage() {
               <div className="flex items-center gap-3 mb-2">
                 <Network className="w-8 h-8 text-cyan-600" />
                 <h1 className="text-3xl font-bold text-slate-900">
-                  语义映射分析
+                  {currentTab === 'ast' ? 'AST 对比图' : currentTab === 'pdg' ? '程序依赖图 (PDG)' : '语义映射分析'}
                 </h1>
               </div>
               <p className="text-slate-600">
-                探索源端和目标代码库之间的 AI 符号映射关系与相似度评分
+                {currentTab === 'ast' 
+                  ? '抽象语法树对比 - 原始代码 vs 目标代码'
+                  : currentTab === 'pdg'
+                  ? '节点=语句，边=数据依赖/控制依赖关系'
+                  : '探索源端和目标代码库之间的 AI 符号映射关系与相似度评分'
+                }
               </p>
             </div>
 
-            {/* Stats */}
-            <div className="flex gap-4">
-              <div className="bg-white/80 border border-cyan-400 rounded-lg px-4 py-2">
-                <p className="text-xs text-gray-600">总映射数</p>
-                <p className="text-2xl font-bold text-cyan-600">{mappingData.length}</p>
-              </div>
-              <div className="bg-white/80 border border-emerald-400 rounded-lg px-4 py-2">
-                <p className="text-xs text-gray-600">已确认</p>
-                <p className="text-2xl font-bold text-emerald-600">
-                  {mappingData.filter(m => m.status === 'confirmed').length}
-                </p>
-              </div>
-              <div className="bg-white/80 border border-orange-400 rounded-lg px-4 py-2">
-                <p className="text-xs text-gray-600">平均分</p>
-                <p className="text-2xl font-bold text-orange-600">
-                  {(mappingData.reduce((sum, m) => sum + m.overallScore, 0) / mappingData.length * 100).toFixed(1)}%
-                </p>
-              </div>
-            </div>
-          </div>
-        </motion.div>
-
-        {/* Visual Graph */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }}
-          className="mb-8"
-        >
-          <div className="flex items-center gap-2 mb-4">
-            <GitBranch className="w-5 h-5 text-cyan-600" />
-            <h2 className="text-xl font-semibold text-slate-900">
-              可视化映射图谱
-            </h2>
-            <div className="flex-1 h-px bg-white ml-4" />
-          </div>
-
-          <MappingGraph 
-            nodes={graphNodes} 
-            edges={graphEdges}
-            onEdgeHover={setHoveredEdge}
-          />
-
-          {/* Hover Info */}
-          {hoveredEdge && (
-            <motion.div
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="mt-4 bg-slate-100 backdrop-blur-sm border border-cyan-400 rounded-lg p-4"
-            >
-              <div className="grid grid-cols-3 gap-4 text-sm">
-                <div>
-                  <p className="text-gray-600 mb-1">总分</p>
-                  <p className={`text-2xl font-bold ${getScoreColor(hoveredEdge.score)}`}>
-                    {(hoveredEdge.score * 100).toFixed(1)}%
+            {/* Stats - 只在 mapping 页面显示 */}
+            {currentTab === 'mapping' && (
+              <div className="flex gap-4">
+                <div className="bg-white/80 border border-cyan-400 rounded-lg px-4 py-2">
+                  <p className="text-xs text-gray-600">总映射数</p>
+                  <p className="text-2xl font-bold text-cyan-600">{mappingData.length}</p>
+                </div>
+                <div className="bg-white/80 border border-emerald-400 rounded-lg px-4 py-2">
+                  <p className="text-xs text-gray-600">已确认</p>
+                  <p className="text-2xl font-bold text-emerald-600">
+                    {mappingData.filter(m => m.status === 'confirmed').length}
                   </p>
                 </div>
-                <div>
-                  <p className="text-gray-600 mb-1">AST 匹配度</p>
-                  <p className={`text-2xl font-bold ${getScoreColor(hoveredEdge.astMatch)}`}>
-                    {(hoveredEdge.astMatch * 100).toFixed(1)}%
-                  </p>
-                </div>
-                <div>
-                  <p className="text-gray-600 mb-1">数据流匹配度</p>
-                  <p className={`text-2xl font-bold ${getScoreColor(hoveredEdge.dataflowMatch)}`}>
-                    {(hoveredEdge.dataflowMatch * 100).toFixed(1)}%
+                <div className="bg-white/80 border border-orange-400 rounded-lg px-4 py-2">
+                  <p className="text-xs text-gray-600">平均分</p>
+                  <p className="text-2xl font-bold text-orange-600">
+                    {(mappingData.reduce((sum, m) => sum + m.overallScore, 0) / mappingData.length * 100).toFixed(1)}%
                   </p>
                 </div>
               </div>
-            </motion.div>
-          )}
-        </motion.div>
-
-        {/* Filter Buttons */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2 }}
-          className="mb-6"
-        >
-          <div className="flex items-center gap-3">
-            <span className="text-sm text-slate-600">类型筛选:</span>
-            <div className="flex gap-2">
-              {(['all', 'function', 'variable', 'type'] as const).map((type) => (
-                <button
-                  key={type}
-                  onClick={() => setFilter类型(type)}
-                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-                    filter类型 === type
-                      ? 'bg-cyan-500/20 border-2 border-cyan-500 text-cyan-700'
-                      : 'bg-slate-100/50 border border-slate-200 text-slate-600 hover:border-cyan-400'
-                  }`}
-                >
-                  {{'all': '全部', 'function': '函数', 'variable': '变量', 'type': '类型'}[type]}
-                </button>
-              ))}
-            </div>
+            )}
           </div>
         </motion.div>
 
-        {/* 映射详情对照表 */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.3 }}
-        >
-          <div className="flex items-center gap-2 mb-4">
-            <Code2 className="w-5 h-5 text-cyan-600" />
-            <h2 className="text-xl font-semibold text-slate-900">
-              映射详情对照表
-            </h2>
-            <div className="flex-1 h-px bg-white ml-4" />
-          </div>
+        {/* 导航栏 */}
+        <NavigationTabs currentTab={currentTab} onTabChange={handleTabChange} />
 
-          <div className="bg-white/60 backdrop-blur-md border border-slate-200 rounded-xl overflow-hidden shadow-xl">
-            {/* Table Header */}
-            <div className="grid grid-cols-12 gap-4 bg-slate-100/50 border-b border-slate-200 px-6 py-4 text-sm font-semibold text-slate-600">
-              <div className="col-span-2">源符号</div>
-              <div className="col-span-2">目标符号</div>
-              <div className="col-span-1">类型</div>
-              <div className="col-span-2">AST 匹配度</div>
-              <div className="col-span-2">数据流匹配度</div>
-              <div className="col-span-2">总分</div>
-              <div className="col-span-1">状态</div>
-            </div>
-
-            {/* Table Rows */}
-            <div className="divide-y divide-white/5">
-              {filteredMappings.map((mapping, index) => (
-                <motion.div
-                  key={mapping.id}
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: index * 0.05 }}
-                  onClick={() => setSelectedMapping(mapping)}
-                  className={`grid grid-cols-12 gap-4 px-6 py-4 cursor-pointer transition-colors ${
-                    selectedMapping?.id === mapping.id
-                      ? 'bg-cyan-500/10 border-l-4 border-cyan-500'
-                      : 'hover:bg-white'
-                  }`}
-                >
-                  {/* 源符号 */}
-                  <div className="col-span-2 font-mono text-sm text-red-600">
-                    {mapping.sourceSymbol}
-                  </div>
-
-                  {/* 目标符号 */}
-                  <div className="col-span-2 font-mono text-sm text-emerald-600">
-                    {mapping.targetSymbol}
-                  </div>
-
-                  {/* 类型 */}
-                  <div className="col-span-1">
-                    <span className={`px-2 py-1 rounded text-xs font-medium ${
-                      mapping.type === 'function' ? 'bg-orange-500/20 text-orange-700' :
-                      mapping.type === 'variable' ? 'bg-cyan-500/20 text-cyan-700' :
-                      'bg-purple-500/20 text-purple-700'
-                    }`}>
-                      {mapping.type}
-                    </span>
-                  </div>
-
-                  {/* AST 匹配度 */}
-                  <div className="col-span-2">
-                    <div className="flex items-center gap-2">
-                      <div className="flex-1 bg-slate-100/50 rounded-full h-2 overflow-hidden">
-                        <motion.div
-                          initial={{ width: 0 }}
-                          animate={{ width: `${mapping.astMatch * 100}%` }}
-                          transition={{ delay: index * 0.05 + 0.2 }}
-                          className={`h-full ${getScoreBgColor(mapping.astMatch)}`}
-                        />
-                      </div>
-                      <span className={`text-xs font-mono ${getScoreColor(mapping.astMatch)}`}>
-                        {(mapping.astMatch * 100).toFixed(0)}%
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* 数据流匹配度 */}
-                  <div className="col-span-2">
-                    <div className="flex items-center gap-2">
-                      <div className="flex-1 bg-slate-100/50 rounded-full h-2 overflow-hidden">
-                        <motion.div
-                          initial={{ width: 0 }}
-                          animate={{ width: `${mapping.dataflowMatch * 100}%` }}
-                          transition={{ delay: index * 0.05 + 0.3 }}
-                          className={`h-full ${getScoreBgColor(mapping.dataflowMatch)}`}
-                        />
-                      </div>
-                      <span className={`text-xs font-mono ${getScoreColor(mapping.dataflowMatch)}`}>
-                        {(mapping.dataflowMatch * 100).toFixed(0)}%
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* 总分 */}
-                  <div className="col-span-2">
-                    <div className="flex items-center gap-2">
-                      <div className="flex-1 bg-slate-100/50 rounded-full h-2 overflow-hidden">
-                        <motion.div
-                          initial={{ width: 0 }}
-                          animate={{ width: `${mapping.overallScore * 100}%` }}
-                          transition={{ delay: index * 0.05 + 0.4 }}
-                          className={`h-full ${getScoreBgColor(mapping.overallScore)}`}
-                        />
-                      </div>
-                      <span className={`text-sm font-bold ${getScoreColor(mapping.overallScore)}`}>
-                        {(mapping.overallScore * 100).toFixed(0)}%
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* 状态 */}
-                  <div className="col-span-1 flex items-center">
-                    {get状态Icon(mapping.status)}
-                  </div>
-                </motion.div>
-              ))}
-            </div>
-          </div>
-        </motion.div>
-
-        {/* Selected 映射详细信息 */}
-        {selectedMapping && (
+        {/* Visual Graph - 只在 mapping 页面显示 */}
+        {currentTab === 'mapping' && (
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="mt-6 bg-white backdrop-blur-md border border-cyan-500/50 rounded-xl p-8 shadow-[0_0_30px_-5px_rgba(6,182,212,0.3)] transition-all duration-300"
+            transition={{ delay: 0.1 }}
+            className="mb-8"
           >
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center gap-3">
-                <Hash className="w-5 h-5 text-cyan-600" />
-                <h3 className="text-lg font-semibold text-slate-900">
-                  映射详细信息
-                </h3>
-              </div>
-              <button
-                onClick={() => setSelectedMapping(null)}
-                className="text-slate-600 hover:text-slate-900 transition-colors"
-              >
-                ✕
-              </button>
+            <div className="flex items-center gap-2 mb-4">
+              <GitBranch className="w-5 h-5 text-cyan-600" />
+              <h2 className="text-xl font-semibold text-slate-900">
+                可视化映射图谱
+              </h2>
+              <div className="flex-1 h-px bg-white ml-4" />
             </div>
 
-            <div className="grid grid-cols-2 gap-6">
-              <div>
-                <p className="text-sm text-gray-600 mb-2">上下文分析</p>
-                <p className="text-slate-600">{selectedMapping.context}</p>
-              </div>
-              <div>
-                <p className="text-sm text-gray-600 mb-2">采用的匹配技术</p>
-                <div className="space-y-2 text-sm">
-                  <div className="flex items-center gap-2">
-                    <div className="w-2 h-2 bg-cyan-400 rounded-full" />
-                    <span className="text-slate-600">抽象语法树 (AST) 对比分析</span>
+            <MappingGraph 
+              nodes={graphNodes} 
+              edges={graphEdges}
+              onEdgeHover={setHoveredEdge}
+            />
+
+            {/* Hover Info */}
+            {hoveredEdge && (
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="mt-4 bg-slate-100 backdrop-blur-sm border border-cyan-400 rounded-lg p-4"
+              >
+                <div className="grid grid-cols-3 gap-4 text-sm">
+                  <div>
+                    <p className="text-gray-600 mb-1">总分</p>
+                    <p className={`text-2xl font-bold ${getScoreColor(hoveredEdge.score)}`}>
+                      {(hoveredEdge.score * 100).toFixed(1)}%
+                    </p>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <div className="w-2 h-2 bg-cyan-400 rounded-full" />
-                    <span className="text-slate-600">控制流与数据流分析</span>
+                  <div>
+                    <p className="text-gray-600 mb-1">AST 匹配度</p>
+                    <p className={`text-2xl font-bold ${getScoreColor(hoveredEdge.astMatch)}`}>
+                      {(hoveredEdge.astMatch * 100).toFixed(1)}%
+                    </p>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <div className="w-2 h-2 bg-cyan-400 rounded-full" />
-                    <span className="text-slate-600">类型 system compatibility check</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <div className="w-2 h-2 bg-cyan-400 rounded-full" />
-                    <span className="text-slate-600">语义嵌入相似度计算 (AI 模型)</span>
+                  <div>
+                    <p className="text-gray-600 mb-1">数据流匹配度</p>
+                    <p className={`text-2xl font-bold ${getScoreColor(hoveredEdge.dataflowMatch)}`}>
+                      {(hoveredEdge.dataflowMatch * 100).toFixed(1)}%
+                    </p>
                   </div>
                 </div>
-              </div>
-            </div>
-
-            <div className="mt-4 pt-4 border-t border-slate-200">
-              <div className="flex items-center gap-2">
-                {get状态Icon(selectedMapping.status)}
-                <span className="text-sm text-slate-600">
-                  状态: <span className="text-slate-900 font-semibold capitalize">{selectedMapping.status}</span>
-                </span>
-              </div>
-            </div>
+              </motion.div>
+            )}
           </motion.div>
         )}
 
-        {/* Legend */}
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.5 }}
-          className="mt-8 bg-white/60 border border-slate-200 rounded-lg p-4"
-        >
-          <div className="flex items-center gap-8 text-sm">
-            <div className="flex items-center gap-2">
-              <div className="w-3 h-3 bg-emerald-500 rounded" />
-              <span className="text-slate-600">极好 (90-100%)</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="w-3 h-3 bg-cyan-500 rounded" />
-              <span className="text-slate-600">良好 (70-89%)</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="w-3 h-3 bg-orange-500 rounded" />
-              <span className="text-slate-600">一般 (50-69%)</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="w-3 h-3 bg-red-500 rounded" />
-              <span className="text-slate-600">较低 (&lt;50%)</span>
-            </div>
-          </div>
-        </motion.div>
+        {/* 主要内容区域 */}
+        {renderContent()}
       </div>
     </div>
   );

@@ -3,6 +3,7 @@ import { TaskCreationPage } from "./pages/TaskCreationPage";
 import { WorkflowPage } from "./pages/WorkflowPage";
 import { CodeComparisonPage } from "./pages/CodeComparisonPage";
 import { SemanticMappingPage } from "./pages/SemanticMappingPage";
+import { HistoryPage } from "./pages/HistoryPage";
 
 export const router = createBrowserRouter([
   {
@@ -20,5 +21,9 @@ export const router = createBrowserRouter([
   {
     path: "/semantic-mapping",
     Component: SemanticMappingPage,
+  },
+  {
+    path: "/history",
+    Component: HistoryPage,
   },
 ]);

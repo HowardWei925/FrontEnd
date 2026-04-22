@@ -81,7 +81,7 @@ const mappingData: Mapping[] = [
     astMatch: 1.0,
     dataflowMatch: 1.0,
     overallScore: 1.0,
-    context: 'Type compatibility - exact match',
+    context: '类型 compatibility - exact match',
     status: 'confirmed',
   },
 ];
@@ -92,37 +92,40 @@ const graphNodes = [
   { id: 'var2', label: 'input', type: 'variable' as const, side: 'source' as const },
   { id: 'fn2', label: 'strcpy()', type: 'function' as const, side: 'source' as const },
   { id: 'fn3', label: 'printf()', type: 'function' as const, side: 'source' as const },
-  
+  { id: 'type1', label: 'char*', type: 'type' as const, side: 'source' as const },
+
   { id: 'fn4', label: 'handle_data()', type: 'function' as const, side: 'target' as const },
   { id: 'var3', label: 'temp_buf', type: 'variable' as const, side: 'target' as const },
   { id: 'var4', label: 'user_input', type: 'variable' as const, side: 'target' as const },
   { id: 'fn5', label: 'strncpy()', type: 'function' as const, side: 'target' as const },
   { id: 'fn6', label: 'log_message()', type: 'function' as const, side: 'target' as const },
+  { id: 'type2', label: 'char*', type: 'type' as const, side: 'target' as const },
 ];
 
 const graphEdges = [
-  { from: 'fn1', to: 'fn4', score: 0.96, astMatch: 0.94, dataflowMatch: 0.98 },
+  { from: 'fn1', to: 'fn4', score: 0.96, astMatch: 0.94, dataflowMatch: 0.98 }, 
   { from: 'var1', to: 'var3', score: 0.91, astMatch: 0.89, dataflowMatch: 0.92 },
   { from: 'var2', to: 'var4', score: 0.91, astMatch: 0.87, dataflowMatch: 0.95 },
-  { from: 'fn2', to: 'fn5', score: 0.82, astMatch: 0.78, dataflowMatch: 0.85 },
-  { from: 'fn3', to: 'fn6', score: 0.70, astMatch: 0.72, dataflowMatch: 0.68 },
+  { from: 'fn2', to: 'fn5', score: 0.82, astMatch: 0.78, dataflowMatch: 0.85 }, 
+  { from: 'fn3', to: 'fn6', score: 0.70, astMatch: 0.72, dataflowMatch: 0.68 }, 
+  { from: 'type1', to: 'type2', score: 1.0, astMatch: 1.0, dataflowMatch: 1.0 }, 
 ];
 
 export function SemanticMappingPage() {
   const navigate = useNavigate();
-  const [selectedMapping, setSelectedMapping] = useState<Mapping | null>(null);
+  const [selectedMapping, setSelectedMapping] = useState<Mapping | null>(null); 
   const [hoveredEdge, setHoveredEdge] = useState<any>(null);
-  const [filterType, setFilterType] = useState<'all' | 'variable' | 'function' | 'type'>('all');
+  const [filter类型, setFilter类型] = useState<'all' | 'variable' | 'function' | 'type'>('all');
 
-  const filteredMappings = filterType === 'all' 
+  const filteredMappings = filter类型 === 'all' 
     ? mappingData 
-    : mappingData.filter(m => m.type === filterType);
+    : mappingData.filter(m => m.type === filter类型);
 
   const getScoreColor = (score: number) => {
-    if (score >= 0.9) return 'text-emerald-400';
-    if (score >= 0.7) return 'text-cyan-400';
-    if (score >= 0.5) return 'text-orange-400';
-    return 'text-red-400';
+    if (score >= 0.9) return 'text-emerald-600';
+    if (score >= 0.7) return 'text-cyan-600';
+    if (score >= 0.5) return 'text-orange-600';
+    return 'text-red-600';
   };
 
   const getScoreBgColor = (score: number) => {
@@ -132,27 +135,27 @@ export function SemanticMappingPage() {
     return 'bg-red-500';
   };
 
-  const getStatusIcon = (status: string) => {
+  const get状态Icon = (status: string) => {
     switch (status) {
       case 'confirmed':
-        return <CheckCircle2 className="w-4 h-4 text-emerald-400" />;
+        return <CheckCircle2 className="w-4 h-4 text-emerald-600" />;
       case 'suggested':
-        return <TrendingUp className="w-4 h-4 text-cyan-400" />;
+        return <TrendingUp className="w-4 h-4 text-cyan-600" />;
       case 'uncertain':
-        return <AlertCircle className="w-4 h-4 text-orange-400" />;
+        return <AlertCircle className="w-4 h-4 text-orange-600" />;
       default:
         return null;
     }
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 relative overflow-hidden">
+    <div className="min-h-screen bg-white  relative overflow-hidden">
       {/* Background Grid */}
       <div className="absolute inset-0 opacity-5">
         <div className="absolute inset-0" style={{
           backgroundImage: `
-            linear-gradient(to right, rgba(6, 182, 212, 0.3) 1px, transparent 1px),
-            linear-gradient(to bottom, rgba(6, 182, 212, 0.3) 1px, transparent 1px)
+            
+            
           `,
           backgroundSize: '40px 40px',
         }} />
@@ -192,40 +195,40 @@ export function SemanticMappingPage() {
           <Button
             onClick={() => navigate('/comparison')}
             variant="ghost"
-            className="mb-4 text-gray-400 hover:text-white"
+            className="mb-4 text-slate-600 hover:text-slate-900"
           >
             <ArrowLeft className="w-4 h-4 mr-2" />
-            Back to Comparison
+            返回对比页
           </Button>
 
           <div className="flex items-center justify-between">
             <div>
               <div className="flex items-center gap-3 mb-2">
-                <Network className="w-8 h-8 text-cyan-400" />
-                <h1 className="text-3xl font-bold text-white">
-                  Semantic Mapping Analysis
+                <Network className="w-8 h-8 text-cyan-600" />
+                <h1 className="text-3xl font-bold text-slate-900">
+                  语义映射分析
                 </h1>
               </div>
-              <p className="text-gray-400">
-                AI-powered symbol mapping and similarity scoring between source and target codebases
+              <p className="text-slate-600">
+                探索源端和目标代码库之间的 AI 符号映射关系与相似度评分
               </p>
             </div>
 
             {/* Stats */}
             <div className="flex gap-4">
-              <div className="bg-slate-900/50 border border-cyan-500/30 rounded-lg px-4 py-2">
-                <p className="text-xs text-gray-500">Total Mappings</p>
-                <p className="text-2xl font-bold text-cyan-400">{mappingData.length}</p>
+              <div className="bg-white/80 border border-cyan-400 rounded-lg px-4 py-2">
+                <p className="text-xs text-gray-600">总映射数</p>
+                <p className="text-2xl font-bold text-cyan-600">{mappingData.length}</p>
               </div>
-              <div className="bg-slate-900/50 border border-emerald-500/30 rounded-lg px-4 py-2">
-                <p className="text-xs text-gray-500">Confirmed</p>
-                <p className="text-2xl font-bold text-emerald-400">
+              <div className="bg-white/80 border border-emerald-400 rounded-lg px-4 py-2">
+                <p className="text-xs text-gray-600">已确认</p>
+                <p className="text-2xl font-bold text-emerald-600">
                   {mappingData.filter(m => m.status === 'confirmed').length}
                 </p>
               </div>
-              <div className="bg-slate-900/50 border border-orange-500/30 rounded-lg px-4 py-2">
-                <p className="text-xs text-gray-500">Avg. Score</p>
-                <p className="text-2xl font-bold text-orange-400">
+              <div className="bg-white/80 border border-orange-400 rounded-lg px-4 py-2">
+                <p className="text-xs text-gray-600">平均分</p>
+                <p className="text-2xl font-bold text-orange-600">
                   {(mappingData.reduce((sum, m) => sum + m.overallScore, 0) / mappingData.length * 100).toFixed(1)}%
                 </p>
               </div>
@@ -241,11 +244,11 @@ export function SemanticMappingPage() {
           className="mb-8"
         >
           <div className="flex items-center gap-2 mb-4">
-            <GitBranch className="w-5 h-5 text-cyan-400" />
-            <h2 className="text-xl font-semibold text-white">
-              Visual Mapping Graph
+            <GitBranch className="w-5 h-5 text-cyan-600" />
+            <h2 className="text-xl font-semibold text-slate-900">
+              可视化映射图谱
             </h2>
-            <div className="flex-1 h-px bg-gradient-to-r from-white/10 to-transparent ml-4" />
+            <div className="flex-1 h-px bg-white ml-4" />
           </div>
 
           <MappingGraph 
@@ -259,23 +262,23 @@ export function SemanticMappingPage() {
             <motion.div
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
-              className="mt-4 bg-slate-900/80 backdrop-blur-sm border border-cyan-500/30 rounded-lg p-4"
+              className="mt-4 bg-slate-100 backdrop-blur-sm border border-cyan-400 rounded-lg p-4"
             >
               <div className="grid grid-cols-3 gap-4 text-sm">
                 <div>
-                  <p className="text-gray-500 mb-1">Overall Score</p>
+                  <p className="text-gray-600 mb-1">总分</p>
                   <p className={`text-2xl font-bold ${getScoreColor(hoveredEdge.score)}`}>
                     {(hoveredEdge.score * 100).toFixed(1)}%
                   </p>
                 </div>
                 <div>
-                  <p className="text-gray-500 mb-1">AST Match</p>
+                  <p className="text-gray-600 mb-1">AST 匹配度</p>
                   <p className={`text-2xl font-bold ${getScoreColor(hoveredEdge.astMatch)}`}>
                     {(hoveredEdge.astMatch * 100).toFixed(1)}%
                   </p>
                 </div>
                 <div>
-                  <p className="text-gray-500 mb-1">Dataflow Match</p>
+                  <p className="text-gray-600 mb-1">数据流匹配度</p>
                   <p className={`text-2xl font-bold ${getScoreColor(hoveredEdge.dataflowMatch)}`}>
                     {(hoveredEdge.dataflowMatch * 100).toFixed(1)}%
                   </p>
@@ -293,49 +296,49 @@ export function SemanticMappingPage() {
           className="mb-6"
         >
           <div className="flex items-center gap-3">
-            <span className="text-sm text-gray-400">Filter by type:</span>
+            <span className="text-sm text-slate-600">类型筛选:</span>
             <div className="flex gap-2">
               {(['all', 'function', 'variable', 'type'] as const).map((type) => (
                 <button
                   key={type}
-                  onClick={() => setFilterType(type)}
+                  onClick={() => setFilter类型(type)}
                   className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-                    filterType === type
-                      ? 'bg-cyan-500/20 border-2 border-cyan-500 text-cyan-300'
-                      : 'bg-slate-800/50 border border-white/10 text-gray-400 hover:border-cyan-500/30'
+                    filter类型 === type
+                      ? 'bg-cyan-500/20 border-2 border-cyan-500 text-cyan-700'
+                      : 'bg-slate-100/50 border border-slate-200 text-slate-600 hover:border-cyan-400'
                   }`}
                 >
-                  {type.charAt(0).toUpperCase() + type.slice(1)}
+                  {{'all': '全部', 'function': '函数', 'variable': '变量', 'type': '类型'}[type]}
                 </button>
               ))}
             </div>
           </div>
         </motion.div>
 
-        {/* Detailed Mapping Table */}
+        {/* 映射详情对照表 */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.3 }}
         >
           <div className="flex items-center gap-2 mb-4">
-            <Code2 className="w-5 h-5 text-cyan-400" />
-            <h2 className="text-xl font-semibold text-white">
-              Detailed Mapping Table
+            <Code2 className="w-5 h-5 text-cyan-600" />
+            <h2 className="text-xl font-semibold text-slate-900">
+              映射详情对照表
             </h2>
-            <div className="flex-1 h-px bg-gradient-to-r from-white/10 to-transparent ml-4" />
+            <div className="flex-1 h-px bg-white ml-4" />
           </div>
 
-          <div className="bg-slate-900/50 backdrop-blur-sm border border-white/10 rounded-lg overflow-hidden">
+          <div className="bg-white/60 backdrop-blur-md border border-slate-200 rounded-xl overflow-hidden shadow-xl">
             {/* Table Header */}
-            <div className="grid grid-cols-12 gap-4 bg-slate-800/50 border-b border-white/10 px-6 py-4 text-sm font-semibold text-gray-400">
-              <div className="col-span-2">Source Symbol</div>
-              <div className="col-span-2">Target Symbol</div>
-              <div className="col-span-1">Type</div>
-              <div className="col-span-2">AST Match</div>
-              <div className="col-span-2">Dataflow Match</div>
-              <div className="col-span-2">Overall Score</div>
-              <div className="col-span-1">Status</div>
+            <div className="grid grid-cols-12 gap-4 bg-slate-100/50 border-b border-slate-200 px-6 py-4 text-sm font-semibold text-slate-600">
+              <div className="col-span-2">源符号</div>
+              <div className="col-span-2">目标符号</div>
+              <div className="col-span-1">类型</div>
+              <div className="col-span-2">AST 匹配度</div>
+              <div className="col-span-2">数据流匹配度</div>
+              <div className="col-span-2">总分</div>
+              <div className="col-span-1">状态</div>
             </div>
 
             {/* Table Rows */}
@@ -350,34 +353,34 @@ export function SemanticMappingPage() {
                   className={`grid grid-cols-12 gap-4 px-6 py-4 cursor-pointer transition-colors ${
                     selectedMapping?.id === mapping.id
                       ? 'bg-cyan-500/10 border-l-4 border-cyan-500'
-                      : 'hover:bg-white/5'
+                      : 'hover:bg-white'
                   }`}
                 >
-                  {/* Source Symbol */}
-                  <div className="col-span-2 font-mono text-sm text-red-400">
+                  {/* 源符号 */}
+                  <div className="col-span-2 font-mono text-sm text-red-600">
                     {mapping.sourceSymbol}
                   </div>
 
-                  {/* Target Symbol */}
-                  <div className="col-span-2 font-mono text-sm text-emerald-400">
+                  {/* 目标符号 */}
+                  <div className="col-span-2 font-mono text-sm text-emerald-600">
                     {mapping.targetSymbol}
                   </div>
 
-                  {/* Type */}
+                  {/* 类型 */}
                   <div className="col-span-1">
                     <span className={`px-2 py-1 rounded text-xs font-medium ${
-                      mapping.type === 'function' ? 'bg-orange-500/20 text-orange-300' :
-                      mapping.type === 'variable' ? 'bg-cyan-500/20 text-cyan-300' :
-                      'bg-purple-500/20 text-purple-300'
+                      mapping.type === 'function' ? 'bg-orange-500/20 text-orange-700' :
+                      mapping.type === 'variable' ? 'bg-cyan-500/20 text-cyan-700' :
+                      'bg-purple-500/20 text-purple-700'
                     }`}>
                       {mapping.type}
                     </span>
                   </div>
 
-                  {/* AST Match */}
+                  {/* AST 匹配度 */}
                   <div className="col-span-2">
                     <div className="flex items-center gap-2">
-                      <div className="flex-1 bg-slate-800/50 rounded-full h-2 overflow-hidden">
+                      <div className="flex-1 bg-slate-100/50 rounded-full h-2 overflow-hidden">
                         <motion.div
                           initial={{ width: 0 }}
                           animate={{ width: `${mapping.astMatch * 100}%` }}
@@ -391,10 +394,10 @@ export function SemanticMappingPage() {
                     </div>
                   </div>
 
-                  {/* Dataflow Match */}
+                  {/* 数据流匹配度 */}
                   <div className="col-span-2">
                     <div className="flex items-center gap-2">
-                      <div className="flex-1 bg-slate-800/50 rounded-full h-2 overflow-hidden">
+                      <div className="flex-1 bg-slate-100/50 rounded-full h-2 overflow-hidden">
                         <motion.div
                           initial={{ width: 0 }}
                           animate={{ width: `${mapping.dataflowMatch * 100}%` }}
@@ -408,10 +411,10 @@ export function SemanticMappingPage() {
                     </div>
                   </div>
 
-                  {/* Overall Score */}
+                  {/* 总分 */}
                   <div className="col-span-2">
                     <div className="flex items-center gap-2">
-                      <div className="flex-1 bg-slate-800/50 rounded-full h-2 overflow-hidden">
+                      <div className="flex-1 bg-slate-100/50 rounded-full h-2 overflow-hidden">
                         <motion.div
                           initial={{ width: 0 }}
                           animate={{ width: `${mapping.overallScore * 100}%` }}
@@ -425,9 +428,9 @@ export function SemanticMappingPage() {
                     </div>
                   </div>
 
-                  {/* Status */}
+                  {/* 状态 */}
                   <div className="col-span-1 flex items-center">
-                    {getStatusIcon(mapping.status)}
+                    {get状态Icon(mapping.status)}
                   </div>
                 </motion.div>
               ))}
@@ -435,23 +438,23 @@ export function SemanticMappingPage() {
           </div>
         </motion.div>
 
-        {/* Selected Mapping Details */}
+        {/* Selected 映射详细信息 */}
         {selectedMapping && (
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="mt-6 bg-gradient-to-br from-slate-900/80 to-cyan-900/20 backdrop-blur-sm border border-cyan-500/30 rounded-lg p-6"
+            className="mt-6 bg-white backdrop-blur-md border border-cyan-500/50 rounded-xl p-8 shadow-[0_0_30px_-5px_rgba(6,182,212,0.3)] transition-all duration-300"
           >
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-3">
-                <Hash className="w-5 h-5 text-cyan-400" />
-                <h3 className="text-lg font-semibold text-white">
-                  Mapping Details
+                <Hash className="w-5 h-5 text-cyan-600" />
+                <h3 className="text-lg font-semibold text-slate-900">
+                  映射详细信息
                 </h3>
               </div>
               <button
                 onClick={() => setSelectedMapping(null)}
-                className="text-gray-400 hover:text-white transition-colors"
+                className="text-slate-600 hover:text-slate-900 transition-colors"
               >
                 ✕
               </button>
@@ -459,37 +462,37 @@ export function SemanticMappingPage() {
 
             <div className="grid grid-cols-2 gap-6">
               <div>
-                <p className="text-sm text-gray-500 mb-2">Context Analysis</p>
-                <p className="text-gray-300">{selectedMapping.context}</p>
+                <p className="text-sm text-gray-600 mb-2">上下文分析</p>
+                <p className="text-slate-600">{selectedMapping.context}</p>
               </div>
               <div>
-                <p className="text-sm text-gray-500 mb-2">Matching Techniques</p>
+                <p className="text-sm text-gray-600 mb-2">采用的匹配技术</p>
                 <div className="space-y-2 text-sm">
                   <div className="flex items-center gap-2">
                     <div className="w-2 h-2 bg-cyan-400 rounded-full" />
-                    <span className="text-gray-300">Abstract Syntax Tree (AST) comparison</span>
+                    <span className="text-slate-600">抽象语法树 (AST) 对比分析</span>
                   </div>
                   <div className="flex items-center gap-2">
                     <div className="w-2 h-2 bg-cyan-400 rounded-full" />
-                    <span className="text-gray-300">Control-flow and dataflow analysis</span>
+                    <span className="text-slate-600">控制流与数据流分析</span>
                   </div>
                   <div className="flex items-center gap-2">
                     <div className="w-2 h-2 bg-cyan-400 rounded-full" />
-                    <span className="text-gray-300">Type system compatibility check</span>
+                    <span className="text-slate-600">类型 system compatibility check</span>
                   </div>
                   <div className="flex items-center gap-2">
                     <div className="w-2 h-2 bg-cyan-400 rounded-full" />
-                    <span className="text-gray-300">Semantic embedding similarity (AI)</span>
+                    <span className="text-slate-600">语义嵌入相似度计算 (AI 模型)</span>
                   </div>
                 </div>
               </div>
             </div>
 
-            <div className="mt-4 pt-4 border-t border-white/10">
+            <div className="mt-4 pt-4 border-t border-slate-200">
               <div className="flex items-center gap-2">
-                {getStatusIcon(selectedMapping.status)}
-                <span className="text-sm text-gray-400">
-                  Status: <span className="text-white font-semibold capitalize">{selectedMapping.status}</span>
+                {get状态Icon(selectedMapping.status)}
+                <span className="text-sm text-slate-600">
+                  状态: <span className="text-slate-900 font-semibold capitalize">{selectedMapping.status}</span>
                 </span>
               </div>
             </div>
@@ -501,24 +504,24 @@ export function SemanticMappingPage() {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.5 }}
-          className="mt-8 bg-slate-900/30 border border-white/10 rounded-lg p-4"
+          className="mt-8 bg-white/60 border border-slate-200 rounded-lg p-4"
         >
           <div className="flex items-center gap-8 text-sm">
             <div className="flex items-center gap-2">
               <div className="w-3 h-3 bg-emerald-500 rounded" />
-              <span className="text-gray-400">Excellent (90-100%)</span>
+              <span className="text-slate-600">极好 (90-100%)</span>
             </div>
             <div className="flex items-center gap-2">
               <div className="w-3 h-3 bg-cyan-500 rounded" />
-              <span className="text-gray-400">Good (70-89%)</span>
+              <span className="text-slate-600">良好 (70-89%)</span>
             </div>
             <div className="flex items-center gap-2">
               <div className="w-3 h-3 bg-orange-500 rounded" />
-              <span className="text-gray-400">Fair (50-69%)</span>
+              <span className="text-slate-600">一般 (50-69%)</span>
             </div>
             <div className="flex items-center gap-2">
               <div className="w-3 h-3 bg-red-500 rounded" />
-              <span className="text-gray-400">Low (&lt;50%)</span>
+              <span className="text-slate-600">较低 (&lt;50%)</span>
             </div>
           </div>
         </motion.div>

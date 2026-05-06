@@ -116,7 +116,7 @@ export function WorkflowPage() {
           className="mb-12"
         >
           <Button
-            onClick={() => navigate('/')}
+            onClick={() => navigate('/task-creation')}
             variant="ghost"
             className="mb-6 text-slate-600 hover:text-slate-900"
           >

@@ -1,15 +1,17 @@
 import { useState } from 'react';
 import { motion } from 'motion/react';
-import { ArrowLeft, Network, TrendingUp, Code2, Hash, GitBranch, CheckCircle2, AlertCircle, BarChart3, Share2 } from 'lucide-react';
+import { 
+  ArrowLeft, Network, TrendingUp, Code2, Hash, GitBranch, 
+  CheckCircle2, AlertCircle, BarChart3, Share2, FileSearch 
+} from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router';
 import { Button } from '../components/ui/button';
 import { MappingGraph } from '../components/MappingGraph';
-
-// 新增：导入 AST 和 PDG 的独立组件
 import { ASTComparisonView } from './ASTComparisonView';
 import { PDGView } from './PDGView';
+import { VulnTypeAnalysisView } from './VulnTypeAnalysisView';
 
-// 原有 Mapping 接口定义（保持不变）
+// 原有 Mapping 接口定义
 interface Mapping {
   id: string;
   sourceSymbol: string;
@@ -22,9 +24,8 @@ interface Mapping {
   status: 'confirmed' | 'suggested' | 'uncertain';
 }
 
-// 原有 mappingData（保持不变）
+// 原有 mappingData
 const mappingData: Mapping[] = [
-  // ... 保持原有所有数据不变
   {
     id: '1',
     sourceSymbol: 'process_input()',
@@ -93,7 +94,7 @@ const mappingData: Mapping[] = [
   },
 ];
 
-// 原有 graphNodes（保持不变）
+// 原有 graphNodes
 const graphNodes = [
   { id: 'fn1', label: 'process_input()', type: 'function' as const, side: 'source' as const },
   { id: 'var1', label: 'buffer', type: 'variable' as const, side: 'source' as const },
@@ -109,7 +110,7 @@ const graphNodes = [
   { id: 'type2', label: 'char*', type: 'type' as const, side: 'target' as const },
 ];
 
-// 原有 graphEdges（保持不变）
+// 原有 graphEdges
 const graphEdges = [
   { from: 'fn1', to: 'fn4', score: 0.96, astMatch: 0.94, dataflowMatch: 0.98 },
   { from: 'var1', to: 'var3', score: 0.91, astMatch: 0.89, dataflowMatch: 0.92 },
@@ -119,44 +120,32 @@ const graphEdges = [
   { from: 'type1', to: 'type2', score: 1.0, astMatch: 1.0, dataflowMatch: 1.0 },
 ];
 
-// 新增：导航栏组件
+// 导航栏组件（顺序调整）
 function NavigationTabs({ currentTab, onTabChange }: { currentTab: string; onTabChange: (tab: string) => void }) {
+  const tabs = [
+    { id: 'mapping', label: '语义映射', icon: Share2 },
+    { id: 'ast', label: 'AST对比图', icon: BarChart3 },
+    { id: 'pdg', label: '程序依赖图 (PDG)', icon: GitBranch },
+    { id: 'type', label: '漏洞类型分析', icon: FileSearch },
+  ];
+
   return (
     <div className="mb-6 border-b border-slate-200">
       <div className="flex gap-1">
-        <button
-          onClick={() => onTabChange('ast')}
-          className={`px-4 py-2 rounded-t-lg text-sm font-medium transition-all flex items-center gap-2 ${
-            currentTab === 'ast'
-              ? 'bg-cyan-500/10 text-cyan-700 border-b-2 border-cyan-500'
-              : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
-          }`}
-        >
-          <BarChart3 className="w-4 h-4" />
-          AST对比图
-        </button>
-        <button
-          onClick={() => onTabChange('pdg')}
-          className={`px-4 py-2 rounded-t-lg text-sm font-medium transition-all flex items-center gap-2 ${
-            currentTab === 'pdg'
-              ? 'bg-cyan-500/10 text-cyan-700 border-b-2 border-cyan-500'
-              : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
-          }`}
-        >
-          <GitBranch className="w-4 h-4" />
-          程序依赖图 (PDG)
-        </button>
-        <button
-          onClick={() => onTabChange('mapping')}
-          className={`px-4 py-2 rounded-t-lg text-sm font-medium transition-all flex items-center gap-2 ${
-            currentTab === 'mapping'
-              ? 'bg-cyan-500/10 text-cyan-700 border-b-2 border-cyan-500'
-              : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
-          }`}
-        >
-          <Share2 className="w-4 h-4" />
-          语义映射
-        </button>
+        {tabs.map((tab) => (
+          <button
+            key={tab.id}
+            onClick={() => onTabChange(tab.id)}
+            className={`px-4 py-2 rounded-t-lg text-sm font-medium transition-all flex items-center gap-2 ${
+              currentTab === tab.id
+                ? 'bg-cyan-500/10 text-cyan-700 border-b-2 border-cyan-500'
+                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+            }`}
+          >
+            <tab.icon className="w-4 h-4" />
+            {tab.label}
+          </button>
+        ))}
       </div>
     </div>
   );
@@ -170,7 +159,6 @@ export function SemanticMappingPage() {
   const [hoveredEdge, setHoveredEdge] = useState<any>(null);
   const [filterType, setFilterType] = useState<'all' | 'variable' | 'function' | 'type'>('all');
 
-  // 从 URL 获取当前 tab，默认为 mapping
   const searchParams = new URLSearchParams(location.search);
   const currentTab = searchParams.get('tab') || 'mapping';
 
@@ -217,6 +205,9 @@ export function SemanticMappingPage() {
     if (currentTab === 'pdg') {
       return <PDGView />;
     }
+    if (currentTab === 'type') {
+      return <VulnTypeAnalysisView mappingData={mappingData} />;
+    }
     // mapping 视图（原页面内容）
     return (
       <>
@@ -255,14 +246,11 @@ export function SemanticMappingPage() {
         >
           <div className="flex items-center gap-2 mb-4">
             <Code2 className="w-5 h-5 text-cyan-600" />
-            <h2 className="text-xl font-semibold text-slate-900">
-              映射详情对照表
-            </h2>
+            <h2 className="text-xl font-semibold text-slate-900">映射详情对照表</h2>
             <div className="flex-1 h-px bg-white ml-4" />
           </div>
 
           <div className="bg-white/60 backdrop-blur-md border border-slate-200 rounded-xl overflow-hidden shadow-xl">
-            {/* Table Header */}
             <div className="grid grid-cols-12 gap-4 bg-slate-100/50 border-b border-slate-200 px-6 py-4 text-sm font-semibold text-slate-600">
               <div className="col-span-2">源符号</div>
               <div className="col-span-2">目标符号</div>
@@ -272,8 +260,6 @@ export function SemanticMappingPage() {
               <div className="col-span-2">总分</div>
               <div className="col-span-1">状态</div>
             </div>
-
-            {/* Table Rows */}
             <div className="divide-y divide-white/5">
               {filteredMappings.map((mapping, index) => (
                 <motion.div
@@ -444,43 +430,24 @@ export function SemanticMappingPage() {
     <div className="min-h-screen bg-white relative overflow-hidden">
       {/* Background Grid */}
       <div className="absolute inset-0 opacity-5">
-        <div className="absolute inset-0" style={{
-          backgroundImage: ``,
-          backgroundSize: '40px 40px',
-        }} />
+        <div className="absolute inset-0" style={{ backgroundImage: '', backgroundSize: '40px 40px' }} />
       </div>
 
       {/* Gradient Orbs */}
       <motion.div
         className="absolute top-20 right-20 w-96 h-96 bg-cyan-500/10 rounded-full blur-3xl"
-        animate={{
-          scale: [1, 1.3, 1],
-          opacity: [0.1, 0.2, 0.1],
-        }}
-        transition={{
-          duration: 10,
-          repeat: Infinity,
-        }}
+        animate={{ scale: [1, 1.3, 1], opacity: [0.1, 0.2, 0.1] }}
+        transition={{ duration: 10, repeat: Infinity }}
       />
       <motion.div
         className="absolute bottom-20 left-20 w-96 h-96 bg-orange-500/10 rounded-full blur-3xl"
-        animate={{
-          scale: [1.3, 1, 1.3],
-          opacity: [0.2, 0.1, 0.2],
-        }}
-        transition={{
-          duration: 10,
-          repeat: Infinity,
-        }}
+        animate={{ scale: [1.3, 1, 1.3], opacity: [0.2, 0.1, 0.2] }}
+        transition={{ duration: 10, repeat: Infinity }}
       />
 
       <div className="relative z-10 container mx-auto px-6 py-8 max-w-[1800px]">
         {/* Header */}
-        <motion.div
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="mb-8"
-        >
+        <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} className="mb-8">
           <Button
             onClick={() => navigate('/comparison')}
             variant="ghost"
@@ -495,7 +462,7 @@ export function SemanticMappingPage() {
               <div className="flex items-center gap-3 mb-2">
                 <Network className="w-8 h-8 text-cyan-600" />
                 <h1 className="text-3xl font-bold text-slate-900">
-                  {currentTab === 'ast' ? 'AST 对比图' : currentTab === 'pdg' ? '程序依赖图 (PDG)' : '语义映射分析'}
+                  {currentTab === 'ast' ? 'AST 对比图' : currentTab === 'pdg' ? '程序依赖图 (PDG)' : currentTab === 'type' ? '漏洞类型分析' : '语义映射分析'}
                 </h1>
               </div>
               <p className="text-slate-600">
@@ -503,6 +470,8 @@ export function SemanticMappingPage() {
                   ? '抽象语法树对比 - 原始代码 vs 目标代码'
                   : currentTab === 'pdg'
                   ? '节点=语句，边=数据依赖/控制依赖关系'
+                  : currentTab === 'type'
+                  ? '分析代码克隆类型 (Type 1/2/3/4)'
                   : '探索源端和目标代码库之间的 AI 符号映射关系与相似度评分'
                 }
               </p>
@@ -545,9 +514,7 @@ export function SemanticMappingPage() {
           >
             <div className="flex items-center gap-2 mb-4">
               <GitBranch className="w-5 h-5 text-cyan-600" />
-              <h2 className="text-xl font-semibold text-slate-900">
-                可视化映射图谱
-              </h2>
+              <h2 className="text-xl font-semibold text-slate-900">可视化映射图谱</h2>
               <div className="flex-1 h-px bg-white ml-4" />
             </div>
 
@@ -557,7 +524,6 @@ export function SemanticMappingPage() {
               onEdgeHover={setHoveredEdge}
             />
 
-            {/* Hover Info */}
             {hoveredEdge && (
               <motion.div
                 initial={{ opacity: 0, y: 10 }}

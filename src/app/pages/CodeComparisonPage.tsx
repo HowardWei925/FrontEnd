@@ -154,8 +154,8 @@ export function CodeComparisonPage() {
   const [hoveredLine, setHoveredLine] = useState<number | null>(null);
   
   // 计算两个 diff
-  const diff1 = computeDiff(vulnerableCodeLines, patchedCodeLines);
-  const diff2 = computeDiff(patchedCodeLines, targetCodeLines);
+  const diff1 = useMemo(() => computeDiff(vulnerableCodeLines, patchedCodeLines), []);
+  const diff2 = useMemo(() => computeDiff(patchedCodeLines, targetCodeLines), []);
 
   return (
     <div className="min-h-screen bg-white relative overflow-hidden">

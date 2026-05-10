@@ -145,6 +145,56 @@ export function VulnTypeAnalysisView({ mappingData }: VulnTypeAnalysisViewProps)
         </div>
       </div>
 
+      {/* 漏洞分析摘要 */}
+      <div className="rounded-lg border bg-white p-6 space-y-4">
+        <div className="flex items-center gap-2">
+          <FileSearch className="w-5 h-5 text-cyan-600" />
+          <h3 className="font-semibold text-slate-900">漏洞分析摘要</h3>
+        </div>
+
+        <div className="grid grid-cols-3 gap-4">
+          <div className="rounded-lg bg-slate-50 border border-slate-200 p-4">
+            <p className="text-xs text-gray-500 mb-1">漏洞类型</p>
+            <p className="text-sm font-mono text-slate-900">缓冲区溢出</p>
+            <p className="text-xs text-gray-400 mt-1">CWE-120</p>
+          </div>
+          <div className="rounded-lg bg-slate-50 border border-slate-200 p-4">
+            <p className="text-xs text-gray-500 mb-1">风险等级</p>
+            <p className="text-sm font-semibold text-rose-600">高危</p>
+            <p className="text-xs text-gray-400 mt-1">CVSS 8.1</p>
+          </div>
+          <div className="rounded-lg bg-slate-50 border border-slate-200 p-4">
+            <p className="text-xs text-gray-500 mb-1">影响范围</p>
+            <p className="text-sm font-mono text-slate-900">process_input()</p>
+            <p className="text-xs text-gray-400 mt-1">src/main.c:4-9</p>
+          </div>
+        </div>
+
+        <div className="space-y-3 text-sm text-slate-600 leading-relaxed">
+          <p>
+            <span className="font-semibold text-slate-900">漏洞描述：</span>
+            在 <code className="px-1 py-0.5 bg-slate-100 rounded text-xs">process_input</code> 函数中，
+            使用 <code className="px-1 py-0.5 bg-slate-100 rounded text-xs">strcpy</code> 将用户输入直接复制到固定大小的栈缓冲区，
+            未对输入长度进行校验，攻击者可构造超长字符串触发栈溢出，覆盖返回地址实现任意代码执行。
+          </p>
+          <p>
+            <span className="font-semibold text-slate-900">修复策略：</span>
+            将 <code className="px-1 py-0.5 bg-slate-100 rounded text-xs">strcpy</code> 替换为
+            <code className="px-1 py-0.5 bg-slate-100 rounded text-xs">strncpy</code>，并显式添加
+            <code className="px-1 py-0.5 bg-slate-100 rounded text-xs">buffer[sizeof(buffer) - 1] = '\0'</code>
+            确保字符串以 null 结尾，从根本上消除缓冲区溢出风险。
+          </p>
+          <p>
+            <span className="font-semibold text-slate-900">移植说明：</span>
+            目标版本中函数名变更为
+            <code className="px-1 py-0.5 bg-slate-100 rounded text-xs">handle_data</code>，参数名变更为
+            <code className="px-1 py-0.5 bg-slate-100 rounded text-xs">user_input</code>，
+            输出函数替换为 <code className="px-1 py-0.5 bg-slate-100 rounded text-xs">log_message</code>，
+            补丁已适配目标代码上下文完成移植。
+          </p>
+        </div>
+      </div>
+
       {/* 分析结果表格 */}
       <div className="rounded-lg border bg-white overflow-hidden">
         <div className="bg-slate-100/50 border-b border-slate-200 px-6 py-4">

@@ -1,4 +1,5 @@
 import { motion } from 'motion/react';
+import { PDGGraphVisualization, demoPDGData } from '../components/pdg-graph/PDGGraphVisualization';
 
 export function PDGView() {
   return (
@@ -43,6 +44,12 @@ export function PDGView() {
       <div className="rounded-lg border bg-blue-50 p-4">
         <p className="text-sm text-blue-700">💡 PDG 图说明：节点代表程序语句，箭头表示依赖关系（数据依赖或控制依赖）。</p>
         <p className="mt-2 text-xs text-gray-500">⏳ 完整功能待后端对接，当前为示例数据</p>
+      </div>
+
+      {/* 交互式 PDG 图形可视化 */}
+      <div className="mt-8">
+        <h2 className="text-lg font-semibold text-slate-900 mb-4">交互式程序依赖图</h2>
+        <PDGGraphVisualization data={demoPDGData} title="Program Dependency Graph" />
       </div>
     </div>
   );

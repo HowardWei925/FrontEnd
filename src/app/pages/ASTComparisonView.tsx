@@ -1,4 +1,5 @@
 import { motion } from 'motion/react';
+import { ASTTreeVisualization, sourceASTData, targetASTData } from '../components/ast-tree/ASTTreeVisualization';
 
 export function ASTComparisonView() {
   return (
@@ -44,6 +45,15 @@ export function ASTComparisonView() {
         <p className="mt-2 text-xs text-gray-500">
           ⏳ 完整功能待后端对接，当前为示例数据
         </p>
+      </div>
+
+      {/* 交互式 AST 树形可视化 */}
+      <div className="mt-8">
+        <h2 className="text-lg font-semibold text-slate-900 mb-4">交互式 AST 树形可视化</h2>
+        <div className="grid grid-cols-2 gap-6">
+          <ASTTreeVisualization data={sourceASTData} title="原始代码 AST" accentColor="red" />
+          <ASTTreeVisualization data={targetASTData} title="目标代码 AST" accentColor="emerald" />
+        </div>
       </div>
     </div>
   );

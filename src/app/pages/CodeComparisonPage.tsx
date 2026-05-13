@@ -1,115 +1,10 @@
-import { useState, useMemo } from 'react';
 import { motion } from 'motion/react';
 import { ArrowLeft, GitCompare, ArrowDown, Info, Sparkles, ArrowRight, Network } from 'lucide-react';
 import { useNavigate } from 'react-router';
-import { CodeBlock } from '../components/CodeBlock';
 import { Button } from '../components/ui/button';
 
-// ==================== 修复后的 Diff 算法 ====================
-function computeDiff(original: string[], patched: string[]) {
-  // 使用 Myers diff 算法思想，简化版：基于最长公共子序列
-  const result: { type: 'add' | 'remove' | 'normal'; content: string; lineNum: number }[] = [];
-  
-  let i = 0, j = 0;
-  let lineNum = 1;
-  
-  // 预处理：去除空行的影响，但保留空行在结果中
-  while (i < original.length || j < patched.length) {
-    // 如果都还有行且内容相同
-    if (i < original.length && j < patched.length && original[i].trim() === patched[j].trim()) {
-      // 相同行，标记为 normal
-      result.push({ type: 'normal', content: original[i], lineNum: lineNum++ });
-      i++;
-      j++;
-    } 
-    // 检查是否只是空行差异
-    else if (i < original.length && original[i].trim() === '' && j < patched.length && patched[j].trim() !== '') {
-      // 原代码有空白行，目标代码没有 → 删除空白行
-      result.push({ type: 'remove', content: original[i], lineNum: lineNum++ });
-      i++;
-    }
-    else if (j < patched.length && patched[j].trim() === '' && i < original.length && original[i].trim() !== '') {
-      // 目标代码有空白行，原代码没有 → 新增空白行
-      result.push({ type: 'add', content: patched[j], lineNum: lineNum++ });
-      j++;
-    }
-    // 原代码有行，目标代码没有（或不同）
-    else if (i < original.length && (j >= patched.length || original[i] !== patched[j])) {
-      result.push({ type: 'remove', content: original[i], lineNum: lineNum++ });
-      i++;
-    }
-    // 目标代码有新行，原代码没有
-    else if (j < patched.length) {
-      result.push({ type: 'add', content: patched[j], lineNum: lineNum++ });
-      j++;
-    }
-    else {
-      i++;
-      j++;
-    }
-  }
-  
-  return result;
-}
-
-// Diff 视图组件
-function DiffCodeBlock({ title, lines, accentColor }: { 
-  title: string; 
-  lines: { type: 'add' | 'remove' | 'normal'; content: string; lineNum: number }[];
-  accentColor: 'red' | 'green' | 'cyan';
-}) {
-  const getHeaderColor = () => {
-    if (accentColor === 'red') return 'bg-red-50 text-red-700 border-red-200';
-    if (accentColor === 'green') return 'bg-emerald-50 text-emerald-700 border-emerald-200';
-    return 'bg-cyan-50 text-cyan-700 border-cyan-200';
-  };
-  
-  return (
-    <div className="rounded-lg border overflow-hidden shadow-sm bg-white">
-      <div className={`px-4 py-2 border-b font-mono font-semibold ${getHeaderColor()}`}>
-        {title}
-      </div>
-      <div className="bg-white font-mono text-sm">
-        {lines.map((line, idx) => (
-          <div
-            key={idx}
-            className={`px-3 py-0.5 ${
-              line.type === 'add' ? 'bg-emerald-50 text-emerald-800' :
-              line.type === 'remove' ? 'bg-red-50 text-red-800' :
-              'text-gray-700'
-            }`}
-          >
-            <span className="inline-block w-8 text-right mr-3 text-gray-400 select-none">
-              {line.type === 'add' ? '+' : line.type === 'remove' ? '-' : ' '}
-            </span>
-            <span className="inline-block w-8 text-right mr-3 text-gray-400 select-none">{line.lineNum}</span>
-            <span>{line.content}</span>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-// ==================== 数据定义 ====================
-const vulnerableCodeLines = [
-  '#include <stdio.h>',
-  '#include <string.h>',
-  '',
-  'void process_input(char *input) {',
-  '    char buffer[64];',
-  '    strcpy(buffer, input); // Vulnerable!',
-  '    printf("Processed: %s\\n", buffer);',
-  '}',
-  '',
-  'int main(int argc, char **argv) {',
-  '    if (argc < 2) return 1;',
-  '    process_input(argv[1]);',
-  '    return 0;',
-  '}',
-];
-
-const patchedCodeLines = [
+// ==================== 修复版本代码 ====================
+const patchedCodeText = [
   '#include <stdio.h>',
   '#include <string.h>',
   '',
@@ -128,7 +23,8 @@ const patchedCodeLines = [
   '}',
 ];
 
-const targetCodeLines = [
+// ==================== 目标版本文本 ====================
+const targetText = [
   '#include <stdio.h>',
   '#include <string.h>',
   '#include "utils.h"',
@@ -149,13 +45,57 @@ const targetCodeLines = [
   '}',
 ];
 
+// ==================== Diff 组件 ====================
+function UnifiedDiffView({ before, after }: { before: string[]; after: string[] }) {
+  const lines: { type: 'add' | 'remove' | 'normal'; content: string }[] = [];
+  let i = 0, j = 0;
+  
+  while (i < before.length || j < after.length) {
+    if (i < before.length && j < after.length && before[i] === after[j]) {
+      lines.push({ type: 'normal', content: before[i] });
+      i++;
+      j++;
+    } else if (j < after.length && (i === before.length || before[i] !== after[j])) {
+      lines.push({ type: 'add', content: after[j] });
+      j++;
+    } else if (i < before.length) {
+      lines.push({ type: 'remove', content: before[i] });
+      i++;
+    }
+  }
+  
+  return (
+    <div className="bg-white font-mono text-sm">
+      {lines.map((line, idx) => {
+        if (line.type === 'add') {
+          return (
+            <div key={idx} className="px-4 py-0.5 bg-emerald-50 text-emerald-800">
+              <span className="inline-block w-8 text-right mr-4 text-gray-400 select-none">+</span>
+              <span className="whitespace-pre-wrap">{line.content === '' ? ' ' : line.content}</span>
+            </div>
+          );
+        } else if (line.type === 'remove') {
+          return (
+            <div key={idx} className="px-4 py-0.5 bg-red-50 text-red-800">
+              <span className="inline-block w-8 text-right mr-4 text-gray-400 select-none">-</span>
+              <span className="whitespace-pre-wrap">{line.content}</span>
+            </div>
+          );
+        } else {
+          return (
+            <div key={idx} className="px-4 py-0.5 text-gray-700">
+              <span className="inline-block w-8 text-right mr-4 text-gray-400 select-none"> </span>
+              <span className="whitespace-pre-wrap">{line.content}</span>
+            </div>
+          );
+        }
+      })}
+    </div>
+  );
+}
+
 export function CodeComparisonPage() {
   const navigate = useNavigate();
-  const [hoveredLine, setHoveredLine] = useState<number | null>(null);
-  
-  // 计算两个 diff
-  const diff1 = useMemo(() => computeDiff(vulnerableCodeLines, patchedCodeLines), []);
-  const diff2 = useMemo(() => computeDiff(patchedCodeLines, targetCodeLines), []);
 
   return (
     <div className="min-h-screen bg-white relative overflow-hidden">
@@ -176,7 +116,7 @@ export function CodeComparisonPage() {
         transition={{ duration: 10, repeat: Infinity }}
       />
 
-      <div className="relative z-10 container mx-auto px-6 py-8 max-w-[1800px]">
+      <div className="relative z-10 container mx-auto px-6 py-8 max-w-[1200px]">
         {/* Header */}
         <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} className="mb-8">
           <Button
@@ -192,29 +132,15 @@ export function CodeComparisonPage() {
             <div>
               <div className="flex items-center gap-3 mb-2">
                 <GitCompare className="w-8 h-8 text-cyan-600" />
-                <h1 className="text-3xl font-bold text-slate-900">三方代码对比</h1>
+                <h1 className="text-3xl font-bold text-slate-900">代码对比</h1>
               </div>
-              <p className="text-slate-600">跨漏洞版本、修复版本和目标版本的分层补丁移植分析</p>
+              <p className="text-slate-600">修复版本 → 目标版本的补丁移植差异</p>
             </div>
             <div className="flex items-center gap-2 px-4 py-2 bg-cyan-500/10 border border-cyan-400 rounded-lg">
               <Sparkles className="w-4 h-4 text-cyan-600" />
               <span className="text-sm text-cyan-700">AI 分析</span>
             </div>
           </div>
-        </motion.div>
-
-        {/* 第一张图：漏洞版本 → 修复版本 */}
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="mb-6">
-          <div className="flex items-center gap-2 mb-4">
-            <div className="w-1 h-6 bg-white rounded-full" />
-            <h2 className="text-xl font-semibold text-slate-900">基础对比：漏洞版本 vs 修复版本</h2>
-            <div className="flex-1 h-px bg-white ml-4" />
-          </div>
-          <DiffCodeBlock 
-            title="补丁差异 — 红色为删除，绿色为新增"
-            lines={diff1}
-            accentColor="red"
-          />
         </motion.div>
 
         {/* 映射指示器 */}
@@ -224,25 +150,26 @@ export function CodeComparisonPage() {
           transition={{ delay: 0.2 }}
           className="flex items-center justify-center my-6"
         >
-          <div className="flex items-center gap-4 px-6 py-3 bg-slate-100/50 border border-cyan-400 rounded-full">
+          <div className="inline-flex items-center gap-4 px-6 py-3 bg-slate-100/50 border border-cyan-400 rounded-full">
             <ArrowDown className="w-5 h-5 text-cyan-600" />
             <span className="text-sm text-slate-600 font-mono">语义映射与代码转换</span>
             <ArrowDown className="w-5 h-5 text-cyan-600" />
           </div>
         </motion.div>
 
-        {/* 第二张图：修复版本 → 目标版本 */}
+        {/* 移植结果 */}
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}>
           <div className="flex items-center gap-2 mb-4">
-            <div className="w-1 h-6 bg-white rounded-full" />
+            <div className="w-1 h-6 bg-emerald-400 rounded-full" />
             <h2 className="text-xl font-semibold text-slate-900">移植结果：目标版本</h2>
-            <div className="flex-1 h-px bg-white ml-4" />
+            <div className="flex-1 h-px bg-slate-200 ml-4" />
           </div>
-          <DiffCodeBlock 
-            title="目标版本差异 — 基于修复版本的 AI 移植结果"
-            lines={diff2}
-            accentColor="green"
-          />
+          <div className="rounded-lg border overflow-hidden shadow-sm bg-white">
+            <div className="px-4 py-2 border-b font-mono font-semibold bg-cyan-50 text-cyan-700 border-cyan-200">
+              目标版本差异 — 红色为删除，绿色为新增
+            </div>
+            <UnifiedDiffView before={patchedCodeText} after={targetText} />
+          </div>
         </motion.div>
 
         {/* 分析面板 */}

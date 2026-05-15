@@ -1,5 +1,6 @@
 import { useRef, useState, useCallback, useEffect, type ReactNode } from 'react';
-import { ZoomIn, ZoomOut, Maximize2 } from 'lucide-react';
+import { createPortal } from 'react-dom';
+import { ZoomIn, ZoomOut, Maximize2, Maximize, Minimize } from 'lucide-react';
 
 interface GraphContainerProps {
   bounds: { width: number; height: number };
@@ -12,7 +13,37 @@ export function GraphContainer({ bounds, children, className = '', initialPaddin
   const svgRef = useRef<SVGSVGElement>(null);
   const [viewBox, setViewBox] = useState({ x: 0, y: 0, width: 0, height: 0 });
   const [isPanning, setIsPanning] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(false);
   const panStart = useRef({ x: 0, y: 0, vx: 0, vy: 0 });
+
+  const cleanupWheel = useRef<(() => void) | null>(null);
+
+  // 完美绑定原生滚轮事件的 ref callback，不会因为 DOM 重绘而丢失
+  const containerRef = useCallback((node: HTMLDivElement | null) => {
+    if (cleanupWheel.current) {
+      cleanupWheel.current();
+      cleanupWheel.current = null;
+    }
+    if (node) {
+      const handleWheel = (e: WheelEvent) => e.preventDefault();
+      node.addEventListener('wheel', handleWheel, { passive: false });
+      cleanupWheel.current = () => node.removeEventListener('wheel', handleWheel);
+    }
+  }, []);
+
+  const toggleFullscreen = useCallback(() => {
+    setIsFullscreen(prev => !prev);
+  }, []);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && isFullscreen) {
+        setIsFullscreen(false);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isFullscreen]);
 
   const fitToView = useCallback(() => {
     setViewBox({
@@ -86,8 +117,12 @@ export function GraphContainer({ bounds, children, className = '', initialPaddin
     }));
   }, []);
 
-  return (
-    <div className={`relative ${className}`}>
+  const content = (
+    <div 
+      ref={containerRef} 
+      style={isFullscreen ? { position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', zIndex: 99999, backgroundColor: '#f8fafc' } : undefined}
+      className={`relative ${!isFullscreen ? className : ''}`}
+    >
       <div className="absolute top-3 right-3 z-10 flex gap-1">
         <button onClick={zoomIn} className="p-1.5 bg-white/90 border border-slate-200 rounded-md hover:bg-slate-50 transition-colors shadow-sm" title="放大">
           <ZoomIn className="w-4 h-4 text-slate-600" />
@@ -97,6 +132,9 @@ export function GraphContainer({ bounds, children, className = '', initialPaddin
         </button>
         <button onClick={fitToView} className="p-1.5 bg-white/90 border border-slate-200 rounded-md hover:bg-slate-50 transition-colors shadow-sm" title="适配视图">
           <Maximize2 className="w-4 h-4 text-slate-600" />
+        </button>
+        <button onClick={toggleFullscreen} className="p-1.5 bg-white/90 border border-slate-200 rounded-md hover:bg-slate-50 transition-colors shadow-sm" title={isFullscreen ? "退出全屏" : "全屏"}>
+          {isFullscreen ? <Minimize className="w-4 h-4 text-slate-600" /> : <Maximize className="w-4 h-4 text-slate-600" />}
         </button>
       </div>
       <svg
@@ -113,4 +151,15 @@ export function GraphContainer({ bounds, children, className = '', initialPaddin
       </svg>
     </div>
   );
+
+  if (isFullscreen && typeof document !== 'undefined') {
+    return (
+      <>
+        <div className={className} /> {/* 原位置占位，防止全屏后页面布局跳动 */}
+        {createPortal(content, document.body)}
+      </>
+    );
+  }
+
+  return content;
 }

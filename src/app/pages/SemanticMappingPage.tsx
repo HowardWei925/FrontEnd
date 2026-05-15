@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion } from 'motion/react';
 import { 
   ArrowLeft, Network, TrendingUp, Code2, Hash, GitBranch, 
@@ -158,6 +158,11 @@ export function SemanticMappingPage() {
   const [selectedMapping, setSelectedMapping] = useState<Mapping | null>(null);
   const [hoveredEdge, setHoveredEdge] = useState<any>(null);
   const [filterType, setFilterType] = useState<'all' | 'variable' | 'function' | 'type'>('all');
+
+  // 路由变化时滚动到顶部
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [location.pathname]);
 
   const searchParams = new URLSearchParams(location.search);
   const currentTab = searchParams.get('tab') || 'mapping';

@@ -45,51 +45,89 @@ const targetText = [
   '}',
 ];
 
-// ==================== Diff 组件 ====================
-function UnifiedDiffView({ before, after }: { before: string[]; after: string[] }) {
-  const lines: { type: 'add' | 'remove' | 'normal'; content: string }[] = [];
+// ==================== GitHub 风格 Diff 组件 ====================
+interface DiffLine {
+  type: 'add' | 'remove' | 'normal';
+  content: string;
+  oldLineNum?: number;
+  newLineNum?: number;
+}
+
+function GitHubDiffView({ before, after }: { before: string[]; after: string[] }) {
+  const lines: DiffLine[] = [];
   let i = 0, j = 0;
-  
+  let oldLineNum = 1;
+  let newLineNum = 1;
+
+  // 计算差异
   while (i < before.length || j < after.length) {
     if (i < before.length && j < after.length && before[i] === after[j]) {
-      lines.push({ type: 'normal', content: before[i] });
+      lines.push({ type: 'normal', content: before[i], oldLineNum: oldLineNum++, newLineNum: newLineNum++ });
       i++;
       j++;
     } else if (j < after.length && (i === before.length || before[i] !== after[j])) {
-      lines.push({ type: 'add', content: after[j] });
+      lines.push({ type: 'add', content: after[j], newLineNum: newLineNum++ });
       j++;
     } else if (i < before.length) {
-      lines.push({ type: 'remove', content: before[i] });
+      lines.push({ type: 'remove', content: before[i], oldLineNum: oldLineNum++ });
       i++;
     }
   }
-  
+
+  // 统计信息
+  const additions = lines.filter(l => l.type === 'add').length;
+  const deletions = lines.filter(l => l.type === 'remove').length;
+
   return (
-    <div className="bg-white font-mono text-sm">
-      {lines.map((line, idx) => {
-        if (line.type === 'add') {
-          return (
-            <div key={idx} className="px-4 py-0.5 bg-emerald-50 text-emerald-800">
-              <span className="inline-block w-8 text-right mr-4 text-gray-400 select-none">+</span>
-              <span className="whitespace-pre-wrap">{line.content === '' ? ' ' : line.content}</span>
-            </div>
-          );
-        } else if (line.type === 'remove') {
-          return (
-            <div key={idx} className="px-4 py-0.5 bg-red-50 text-red-800">
-              <span className="inline-block w-8 text-right mr-4 text-gray-400 select-none">-</span>
-              <span className="whitespace-pre-wrap">{line.content}</span>
-            </div>
-          );
-        } else {
-          return (
-            <div key={idx} className="px-4 py-0.5 text-gray-700">
-              <span className="inline-block w-8 text-right mr-4 text-gray-400 select-none"> </span>
-              <span className="whitespace-pre-wrap">{line.content}</span>
-            </div>
-          );
-        }
-      })}
+    <div className="border border-gray-200 rounded-lg overflow-hidden">
+      {/* 文件头 */}
+      <div className="flex items-center justify-between px-4 py-2 bg-gray-50 border-b border-gray-200">
+        <div className="flex items-center gap-2">
+          <span className="text-sm font-mono text-gray-700">patched.c → target.c</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-emerald-100 text-emerald-800">
+            +{additions}
+          </span>
+          <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-red-100 text-red-800">
+            -{deletions}
+          </span>
+        </div>
+      </div>
+
+      {/* Diff 内容 */}
+      <div className="overflow-x-auto">
+        <table className="w-full border-collapse">
+          <tbody>
+            {lines.map((line, idx) => {
+              const bgColor = line.type === 'add' ? 'bg-emerald-50' : line.type === 'remove' ? 'bg-red-50' : '';
+              const lineColor = line.type === 'add' ? 'text-emerald-800' : line.type === 'remove' ? 'text-red-800' : 'text-gray-700';
+              const sign = line.type === 'add' ? '+' : line.type === 'remove' ? '-' : ' ';
+
+              return (
+                <tr key={idx} className={`${bgColor} hover:brightness-95 transition-colors`}>
+                  {/* 旧文件行号 */}
+                  <td className="w-12 px-2 py-0 text-right text-xs text-gray-400 select-none border-r border-gray-100 align-top">
+                    {line.oldLineNum || ''}
+                  </td>
+                  {/* 新文件行号 */}
+                  <td className="w-12 px-2 py-0 text-right text-xs text-gray-400 select-none border-r border-gray-100 align-top">
+                    {line.newLineNum || ''}
+                  </td>
+                  {/* 符号 */}
+                  <td className={`w-6 px-1 py-0 text-center select-none ${lineColor} align-top`}>
+                    {sign}
+                  </td>
+                  {/* 代码内容 */}
+                  <td className={`px-2 py-0 font-mono text-sm whitespace-pre-wrap ${lineColor} align-top`}>
+                    {line.content || ' '}
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 }
@@ -101,7 +139,7 @@ export function CodeComparisonPage() {
     <div className="min-h-screen bg-white relative overflow-hidden">
       {/* Background Grid */}
       <div className="absolute inset-0 opacity-5">
-        <div className="absolute inset-0" style={{ backgroundImage: '', backgroundSize: '40px 40px' }} />
+        <div className="absolute inset-0" style={{ backgroundImage: 'radial-gradient(circle, #e2e8f0 1px, transparent 1px)', backgroundSize: '40px 40px' }} />
       </div>
 
       {/* Gradient Orbs */}
@@ -143,33 +181,14 @@ export function CodeComparisonPage() {
           </div>
         </motion.div>
 
-        {/* 映射指示器 */}
-        <motion.div
-          initial={{ opacity: 0, scale: 0.9 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ delay: 0.2 }}
-          className="flex items-center justify-center my-6"
-        >
-          <div className="inline-flex items-center gap-4 px-6 py-3 bg-slate-100/50 border border-cyan-400 rounded-full">
-            <ArrowDown className="w-5 h-5 text-cyan-600" />
-            <span className="text-sm text-slate-600 font-mono">语义映射与代码转换</span>
-            <ArrowDown className="w-5 h-5 text-cyan-600" />
-          </div>
-        </motion.div>
-
-        {/* 移植结果 */}
+        {/* 移植结果 - GitHub 风格 */}
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}>
           <div className="flex items-center gap-2 mb-4">
             <div className="w-1 h-6 bg-emerald-400 rounded-full" />
             <h2 className="text-xl font-semibold text-slate-900">移植结果：目标版本</h2>
             <div className="flex-1 h-px bg-slate-200 ml-4" />
           </div>
-          <div className="rounded-lg border overflow-hidden shadow-sm bg-white">
-            <div className="px-4 py-2 border-b font-mono font-semibold bg-cyan-50 text-cyan-700 border-cyan-200">
-              目标版本差异 — 红色为删除，绿色为新增
-            </div>
-            <UnifiedDiffView before={patchedCodeText} after={targetText} />
-          </div>
+          <GitHubDiffView before={patchedCodeText} after={targetText} />
         </motion.div>
 
         {/* 分析面板 */}

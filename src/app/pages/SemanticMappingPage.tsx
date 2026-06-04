@@ -572,10 +572,10 @@ export function SemanticMappingPage() {
         >
           <Button
             onClick={() => navigate('/comparison')}
-            className="w-full bg-cyan-600 hover:bg-cyan-700 text-white py-6 text-base font-medium"
+            className="w-full bg-cyan-600 hover:bg-cyan-700 text-white"
           >
             下一步：查看代码对比
-            <ArrowRight className="w-5 h-5 ml-2" />
+            <ArrowRight className="w-4 h-4 ml-2" />
           </Button>
         </motion.div>
       </div>

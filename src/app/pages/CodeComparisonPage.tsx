@@ -1,6 +1,7 @@
+import { useEffect } from 'react';
 import { motion } from 'motion/react';
 import { ArrowLeft, GitCompare, ArrowDown, Info, Sparkles, ArrowRight, Network, Bot, Play } from 'lucide-react';
-import { useNavigate } from 'react-router';
+import { useNavigate, useLocation } from 'react-router';
 import { Button } from '../components/ui/button';
 
 // ==================== 修复版本代码 ====================
@@ -134,6 +135,11 @@ function GitHubDiffView({ before, after }: { before: string[]; after: string[] }
 
 export function CodeComparisonPage() {
   const navigate = useNavigate();
+  const location = useLocation();
+
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [location.pathname]);
 
   return (
     <div className="min-h-screen bg-white relative overflow-hidden">

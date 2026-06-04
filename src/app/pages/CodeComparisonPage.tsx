@@ -158,31 +158,19 @@ export function CodeComparisonPage() {
         {/* Header */}
         <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} className="mb-8">
           <Button
-            onClick={() => navigate('/workflow')}
+            onClick={() => navigate('/semantic-mapping')}
             variant="ghost"
             className="mb-4 text-slate-600 hover:text-slate-900"
           >
             <ArrowLeft className="w-4 h-4 mr-2" />
-            返回工作流
+            返回语义映射
           </Button>
 
-          <div className="flex items-center justify-between">
-            <div>
-              <div className="flex items-center gap-3 mb-2">
-                <GitCompare className="w-8 h-8 text-cyan-600" />
-                <h1 className="text-3xl font-bold text-slate-900">代码对比</h1>
-              </div>
-              <p className="text-slate-600">修复版本 → 目标版本的补丁移植差异</p>
-            </div>
-            <Button
-              onClick={() => navigate('/agent')}
-              variant="outline"
-              className="border-cyan-300 bg-cyan-50/50 text-cyan-700 hover:bg-cyan-100 hover:border-cyan-400"
-            >
-              <Bot className="w-4 h-4 mr-1.5" />
-              AI 安全分析
-            </Button>
+          <div className="flex items-center gap-3 mb-2">
+            <GitCompare className="w-8 h-8 text-cyan-600" />
+            <h1 className="text-3xl font-bold text-slate-900">代码对比</h1>
           </div>
+          <p className="text-slate-600">修复版本 → 目标版本的补丁移植差异</p>
         </motion.div>
 
         {/* 移植结果 - GitHub 风格 */}
@@ -257,49 +245,79 @@ export function CodeComparisonPage() {
             </div>
           </div>
 
-          <div className="mt-6 pt-6 border-t border-slate-200 space-y-3">
-            <div className="grid grid-cols-2 gap-3">
-              <Button
-                onClick={() => {
-                  sessionStorage.setItem('agent_context', JSON.stringify({
-                    mode: 'verify',
-                    diff: { before: patchedCodeText, after: targetText },
-                    metadata: { vulnType: '缓冲区溢出 (CWE-120)', fixStrategy: '边界检查', confidence: 97.8 },
-                  }));
-                  navigate('/agent');
-                }}
-                variant="outline"
-                className="w-full border-cyan-300 bg-cyan-50/50 text-cyan-700 hover:bg-cyan-100 hover:border-cyan-400 font-medium shadow-sm transition-all"
-              >
-                <Play className="w-4 h-4 mr-2" />
-                AI 验证补丁
-              </Button>
-              <Button
-                onClick={() => {
-                  sessionStorage.setItem('agent_context', JSON.stringify({
-                    mode: 'adjust',
-                    diff: { before: patchedCodeText, after: targetText },
-                    metadata: { vulnType: '缓冲区溢出 (CWE-120)', fixStrategy: '边界检查' },
-                  }));
-                  navigate('/agent');
-                }}
-                variant="outline"
-                className="w-full border-orange-300 bg-orange-50/50 text-orange-700 hover:bg-orange-100 hover:border-orange-400 font-medium shadow-sm transition-all"
-              >
-                <GitCompare className="w-4 h-4 mr-2" />
-                AI 微调补丁
-              </Button>
+        </motion.div>
+
+        {/* Workflow Completion Section */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.5 }}
+          className="mt-8"
+        >
+          <div className="text-center mb-6">
+            <div className="inline-flex items-center justify-center w-14 h-14 bg-emerald-100 rounded-full mb-3">
+              <Sparkles className="w-7 h-7 text-emerald-600" />
             </div>
-            <Button
-              onClick={() => navigate('/semantic-mapping')}
-              className="w-full bg-slate-900 hover:bg-slate-800 text-white font-medium shadow-sm transition-all"
+            <h2 className="text-xl font-bold text-slate-900 mb-1">补丁移植流程完成</h2>
+            <p className="text-sm text-slate-500">你可以使用 AI 进一步验证或微调补丁</p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-2xl mx-auto">
+            {/* Verify Card */}
+            <button
+              onClick={() => {
+                sessionStorage.setItem('agent_context', JSON.stringify({
+                  mode: 'verify',
+                  diff: { before: patchedCodeText, after: targetText },
+                  metadata: { vulnType: '缓冲区溢出 (CWE-120)', fixStrategy: '边界检查', confidence: 97.8 },
+                }));
+                navigate('/agent');
+              }}
+              className="group bg-white border-2 border-cyan-200 hover:border-cyan-400 rounded-xl p-5 text-left transition-all hover:shadow-lg hover:shadow-cyan-500/10"
             >
-              <Network className="w-4 h-4 mr-2" />
-              查看详细的语义映射分析
-              <ArrowRight className="w-4 h-4 ml-2" />
-            </Button>
+              <div className="flex items-center gap-3 mb-3">
+                <div className="size-10 rounded-lg bg-cyan-100 group-hover:bg-cyan-200 flex items-center justify-center transition-colors">
+                  <Play className="size-5 text-cyan-600" />
+                </div>
+                <div>
+                  <h3 className="font-semibold text-slate-900">AI 验证补丁</h3>
+                  <p className="text-xs text-slate-500">输入测试命令，验证漏洞是否修复</p>
+                </div>
+              </div>
+              <p className="text-sm text-slate-600">
+                让 AI 执行编译、PoC 复现、单元测试等命令，自动判断补丁有效性。
+              </p>
+            </button>
+
+            {/* Adjust Card */}
+            <button
+              onClick={() => {
+                sessionStorage.setItem('agent_context', JSON.stringify({
+                  mode: 'adjust',
+                  diff: { before: patchedCodeText, after: targetText },
+                  metadata: { vulnType: '缓冲区溢出 (CWE-120)', fixStrategy: '边界检查' },
+                }));
+                navigate('/agent');
+              }}
+              className="group bg-white border-2 border-orange-200 hover:border-orange-400 rounded-xl p-5 text-left transition-all hover:shadow-lg hover:shadow-orange-500/10"
+            >
+              <div className="flex items-center gap-3 mb-3">
+                <div className="size-10 rounded-lg bg-orange-100 group-hover:bg-orange-200 flex items-center justify-center transition-colors">
+                  <GitCompare className="size-5 text-orange-600" />
+                </div>
+                <div>
+                  <h3 className="font-semibold text-slate-900">AI 微调补丁</h3>
+                  <p className="text-xs text-slate-500">用自然语言修改 diff</p>
+                </div>
+              </div>
+              <p className="text-sm text-slate-600">
+                通过对话告诉 AI 你的修改需求，多轮迭代直到生成满意的补丁。
+              </p>
+            </button>
           </div>
         </motion.div>
+
+        <div className="h-12" />
       </div>
     </div>
   );

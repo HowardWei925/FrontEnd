@@ -260,10 +260,10 @@ export function WorkflowPage() {
                 AI 验证补丁有效性
               </Button>
               <Button
-                onClick={() => navigate('/comparison')}
+                onClick={() => navigate('/semantic-mapping')}
                 className="bg-cyan-600 hover:bg-cyan-500 text-slate-900"
               >
-                查看代码对比
+                查看语义映射分析
                 <ArrowRight className="w-4 h-4 ml-2" />
               </Button>
             </div>

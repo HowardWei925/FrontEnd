@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { motion } from 'motion/react';
 import { 
   ArrowLeft, Network, TrendingUp, Code2, Hash, GitBranch, 
-  CheckCircle2, AlertCircle, BarChart3, Share2, FileSearch
+  CheckCircle2, AlertCircle, BarChart3, Share2, FileSearch, ArrowRight
 } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router';
 import { Button } from '../components/ui/button';
@@ -453,14 +453,23 @@ export function SemanticMappingPage() {
       <div className="relative z-10 container mx-auto px-6 py-8 max-w-[1800px]">
         {/* Header */}
         <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} className="mb-8">
-          <Button
-            onClick={() => navigate('/comparison')}
-            variant="ghost"
-            className="mb-4 text-slate-600 hover:text-slate-900"
-          >
-            <ArrowLeft className="w-4 h-4 mr-2" />
-            返回对比页
-          </Button>
+          <div className="flex items-center justify-between mb-4">
+            <Button
+              onClick={() => navigate('/workflow')}
+              variant="ghost"
+              className="text-slate-600 hover:text-slate-900"
+            >
+              <ArrowLeft className="w-4 h-4 mr-2" />
+              返回工作流
+            </Button>
+            <Button
+              onClick={() => navigate('/comparison')}
+              className="bg-cyan-600 hover:bg-cyan-700 text-white"
+            >
+              下一步：查看代码对比
+              <ArrowRight className="w-4 h-4 ml-2" />
+            </Button>
+          </div>
 
           <div className="flex items-center justify-between">
             <div>

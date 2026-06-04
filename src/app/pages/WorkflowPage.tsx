@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'motion/react';
-import { ArrowLeft, Zap, ArrowRight } from 'lucide-react';
+import { ArrowLeft, Zap, ArrowRight, Bot } from 'lucide-react';
 import { useNavigate } from 'react-router';
 import { WorkflowProgress } from '../components/WorkflowProgress';
 import { Button } from '../components/ui/button';
@@ -238,15 +238,35 @@ export function WorkflowPage() {
               补丁移植成功！
             </h3>
             <p className="text-slate-600 mb-6">
-              所有验证测试均已通过。目标版本已成功应用补丁。
+              补丁迁移完成。请选择后续操作。
             </p>
-            <Button
-              onClick={() => navigate('/comparison')}
-              className="bg-cyan-600 hover:bg-cyan-500 text-slate-900"
-            >
-              查看代码对比
-              <ArrowRight className="w-4 h-4 ml-2" />
-            </Button>
+            <div className="flex flex-col sm:flex-row gap-3 justify-center">
+              <Button
+                onClick={() => {
+                  sessionStorage.setItem('agent_context', JSON.stringify({
+                    mode: 'verify',
+                    diff: {
+                      before: ['#include <stdio.h>', '#include <string.h>', '', 'void process_input(char *input) {', '    char buffer[64];', '    strcpy(buffer, input);', '    printf(buffer);', '}'],
+                      after: ['#include <stdio.h>', '#include <string.h>', '', 'void handle_data(char *user_input) {', '    char temp_buf[64];', '    strncpy(temp_buf, user_input, sizeof(temp_buf) - 1);', '    temp_buf[sizeof(temp_buf) - 1] = \'\\0\';', '    log_message(temp_buf);', '}'],
+                    },
+                    metadata: { vulnType: '缓冲区溢出 (CWE-120)', fixStrategy: '边界检查' },
+                  }));
+                  navigate('/agent');
+                }}
+                variant="outline"
+                className="border-cyan-300 bg-cyan-50/50 text-cyan-700 hover:bg-cyan-100 hover:border-cyan-400"
+              >
+                <Bot className="w-4 h-4 mr-2" />
+                AI 验证补丁有效性
+              </Button>
+              <Button
+                onClick={() => navigate('/comparison')}
+                className="bg-cyan-600 hover:bg-cyan-500 text-slate-900"
+              >
+                查看代码对比
+                <ArrowRight className="w-4 h-4 ml-2" />
+              </Button>
+            </div>
           </motion.div>
         )}
       </div>

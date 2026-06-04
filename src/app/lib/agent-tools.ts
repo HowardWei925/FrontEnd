@@ -46,6 +46,36 @@ export const toolDefinitions: OpenAIToolDefinition[] = [
       },
     },
   },
+  {
+    type: 'function',
+    function: {
+      name: 'runCommand',
+      description: '在目标编译/测试环境中执行 shell 命令。可用于编译代码、运行 PoC 漏洞复现脚本、执行单元测试等。返回命令的退出码、标准输出和标准错误。',
+      parameters: {
+        type: 'object',
+        properties: {
+          command: { type: 'string', description: '要执行的 shell 命令' },
+          description: { type: 'string', description: '命令目的说明（如：编译漏洞版本、运行 PoC、测试补丁后版本）' },
+        },
+        required: ['command'],
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'adjustDiff',
+      description: '根据用户的修改需求，对补丁 diff 进行调整。返回修改后的新 diff 和变更说明。',
+      parameters: {
+        type: 'object',
+        properties: {
+          originalDiff: { type: 'string', description: '当前的 diff 内容' },
+          userRequest: { type: 'string', description: '用户的修改需求描述' },
+        },
+        required: ['originalDiff', 'userRequest'],
+      },
+    },
+  },
 ];
 
 const delay = (ms: number) => new Promise((r) => setTimeout(r, ms));
@@ -219,7 +249,121 @@ const mockExecutors: Record<string, (args: Record<string, unknown>) => ToolResul
   analyzeAST: mockAnalyzeAST,
   getPDG: mockGetPDG,
   getCWEInfo: mockGetCWEInfo,
+  runCommand: mockRunCommand,
+  adjustDiff: mockAdjustDiff,
 };
+
+function mockRunCommand(args: Record<string, unknown>): ToolResult {
+  const command = (args.command as string) || '';
+  const cmd = command.toLowerCase().trim();
+
+  // 编译命令
+  if (cmd.startsWith('gcc') || cmd.startsWith('g++') || cmd.startsWith('make') || cmd.startsWith('cc')) {
+    if (cmd.includes('-o')) {
+      return {
+        success: true,
+        data: {
+          exitCode: 0,
+          stdout: '',
+          stderr: '',
+          duration: 1200,
+        },
+      };
+    }
+    return {
+      success: true,
+      data: { exitCode: 0, stdout: '', stderr: '', duration: 800 },
+    };
+  }
+
+  // 执行命令（漏洞复现）
+  if (cmd.startsWith('./') || cmd.startsWith('python') || cmd.startsWith('bash') || cmd.startsWith('sh ')) {
+    if (cmd.includes('exploit') || cmd.includes('poc') || cmd.includes('payload') || cmd.includes('$(python')) {
+      return {
+        success: true,
+        data: {
+          exitCode: 139,
+          stdout: 'Segmentation fault (core dumped)',
+          stderr: '',
+          duration: 150,
+        },
+      };
+    }
+    if (cmd.includes('patched') || cmd.includes('fixed') || cmd.includes('safe')) {
+      return {
+        success: true,
+        data: {
+          exitCode: 0,
+          stdout: 'Program executed successfully. Input was safely handled.',
+          stderr: '',
+          duration: 100,
+        },
+      };
+    }
+    return {
+      success: true,
+      data: { exitCode: 0, stdout: 'Execution completed.', stderr: '', duration: 200 },
+    };
+  }
+
+  // 测试命令
+  if (cmd.includes('test') || cmd.includes('assert') || cmd.includes('check')) {
+    return {
+      success: true,
+      data: { exitCode: 0, stdout: 'All tests passed (3/3)', stderr: '', duration: 500 },
+    };
+  }
+
+  // 通用命令
+  return {
+    success: true,
+    data: { exitCode: 0, stdout: `Command executed: ${command}`, stderr: '', duration: 300 },
+  };
+}
+
+function mockAdjustDiff(args: Record<string, unknown>): ToolResult {
+  const originalDiff = (args.originalDiff as string) || '';
+  const userRequest = (args.userRequest as string) || '';
+  const req = userRequest.toLowerCase();
+
+  let newDiff = originalDiff;
+  const changes: string[] = [];
+
+  if (req.includes('snprintf') || req.includes('安全') || req.includes('safe')) {
+    newDiff = originalDiff
+      .replace(/strcpy/g, 'snprintf')
+      .replace(/strncpy/g, 'snprintf');
+    changes.push('将字符串复制函数替换为 snprintf，增加长度限制参数');
+  }
+
+  if (req.includes('空指针') || req.includes('null') || req.includes('nullptr')) {
+    if (!newDiff.includes('NULL')) {
+      newDiff = newDiff.replace(/^(\+.*\))\s*\{/gm, '$1 {\n+    if (input == NULL) return;');
+      changes.push('在函数入口增加空指针检查');
+    }
+  }
+
+  if (req.includes('长度') || req.includes('len') || req.includes('size')) {
+    if (!newDiff.includes('sizeof')) {
+      newDiff = newDiff.replace(/strcpy\((\w+),\s*(\w+)\)/g, 'strncpy($1, $2, sizeof($1) - 1)');
+      changes.push('增加缓冲区长度检查，使用 sizeof 限制复制长度');
+    }
+  }
+
+  if (changes.length === 0) {
+    changes.push(`根据需求"${userRequest}"调整了补丁`);
+    newDiff = originalDiff;
+  }
+
+  return {
+    success: true,
+    data: {
+      newDiff,
+      changes,
+      reasoning: `用户要求：${userRequest}。已对 diff 进行相应调整。`,
+    },
+  };
+}
 
 export async function executeTool(
   name: string,

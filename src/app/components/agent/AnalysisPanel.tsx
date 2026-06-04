@@ -1,13 +1,17 @@
-import { Shield, Search, Terminal } from 'lucide-react';
+import { Shield, Search, Terminal, Play, GitCompare } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
-import type { CWEResult, SecurityAuditResult, ToolCall } from '../../lib/agent-types';
+import type { CWEResult, SecurityAuditResult, ToolCall, CommandResult, DiffAdjustment } from '../../lib/agent-types';
 import { CWEResultCard } from './CWEResultCard';
 import { SecurityAuditCard } from './SecurityAuditCard';
+import { CommandResultCard } from './CommandResultCard';
+import { DiffAdjustCard } from './DiffAdjustCard';
 import { ToolCallDisplay } from './ToolCallDisplay';
 
 interface AnalysisPanelProps {
   cweResults: CWEResult[];
   auditResults: SecurityAuditResult[];
+  commandResults: CommandResult[];
+  diffAdjustments: DiffAdjustment[];
   toolCalls: ToolCall[];
 }
 
@@ -22,7 +26,7 @@ function EmptyState({ icon: Icon, text }: { icon: React.ElementType; text: strin
   );
 }
 
-export function AnalysisPanel({ cweResults, auditResults, toolCalls }: AnalysisPanelProps) {
+export function AnalysisPanel({ cweResults, auditResults, commandResults, diffAdjustments, toolCalls }: AnalysisPanelProps) {
   return (
     <div className="flex flex-col h-full overflow-hidden">
       {/* Header */}
@@ -35,11 +39,11 @@ export function AnalysisPanel({ cweResults, auditResults, toolCalls }: AnalysisP
 
       {/* Tabs */}
       <Tabs defaultValue="cwe" className="flex-1 flex flex-col min-h-0">
-        <div className="shrink-0 px-4 pt-3">
+        <div className="shrink-0 px-4 pt-3 overflow-x-auto">
           <TabsList className="w-full">
             <TabsTrigger value="cwe" className="flex-1 gap-1.5">
               <Shield className="size-3.5" />
-              CWE 分析
+              CWE
               {cweResults.length > 0 && (
                 <span className="ml-1 size-4 rounded-full bg-cyan-100 text-cyan-700 text-[10px] flex items-center justify-center">
                   {cweResults.length}
@@ -48,16 +52,34 @@ export function AnalysisPanel({ cweResults, auditResults, toolCalls }: AnalysisP
             </TabsTrigger>
             <TabsTrigger value="audit" className="flex-1 gap-1.5">
               <Search className="size-3.5" />
-              安全审计
+              审计
               {auditResults.length > 0 && (
                 <span className="ml-1 size-4 rounded-full bg-cyan-100 text-cyan-700 text-[10px] flex items-center justify-center">
                   {auditResults.length}
                 </span>
               )}
             </TabsTrigger>
+            <TabsTrigger value="commands" className="flex-1 gap-1.5">
+              <Play className="size-3.5" />
+              验证
+              {commandResults.length > 0 && (
+                <span className="ml-1 size-4 rounded-full bg-cyan-100 text-cyan-700 text-[10px] flex items-center justify-center">
+                  {commandResults.length}
+                </span>
+              )}
+            </TabsTrigger>
+            <TabsTrigger value="diff" className="flex-1 gap-1.5">
+              <GitCompare className="size-3.5" />
+              Diff
+              {diffAdjustments.length > 0 && (
+                <span className="ml-1 size-4 rounded-full bg-cyan-100 text-cyan-700 text-[10px] flex items-center justify-center">
+                  {diffAdjustments.length}
+                </span>
+              )}
+            </TabsTrigger>
             <TabsTrigger value="tools" className="flex-1 gap-1.5">
               <Terminal className="size-3.5" />
-              工具日志
+              日志
               {toolCalls.length > 0 && (
                 <span className="ml-1 size-4 rounded-full bg-cyan-100 text-cyan-700 text-[10px] flex items-center justify-center">
                   {toolCalls.length}
@@ -87,6 +109,30 @@ export function AnalysisPanel({ cweResults, auditResults, toolCalls }: AnalysisP
               <div className="space-y-3">
                 {auditResults.map((result, i) => (
                   <SecurityAuditCard key={i} result={result} />
+                ))}
+              </div>
+            )}
+          </TabsContent>
+
+          <TabsContent value="commands">
+            {commandResults.length === 0 ? (
+              <EmptyState icon={Play} text="等待命令执行结果..." />
+            ) : (
+              <div className="space-y-3">
+                {commandResults.map((result, i) => (
+                  <CommandResultCard key={i} result={result} />
+                ))}
+              </div>
+            )}
+          </TabsContent>
+
+          <TabsContent value="diff">
+            {diffAdjustments.length === 0 ? (
+              <EmptyState icon={GitCompare} text="等待 Diff 微调结果..." />
+            ) : (
+              <div className="space-y-3">
+                {diffAdjustments.map((adj, i) => (
+                  <DiffAdjustCard key={i} adjustment={adj} />
                 ))}
               </div>
             )}

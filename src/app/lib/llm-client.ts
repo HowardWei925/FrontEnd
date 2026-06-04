@@ -6,14 +6,25 @@ const SYSTEM_PROMPT = `你是 PatchFlow 安全分析助手，专注于代码安�
 - analyzeAST: 分析代码的抽象语法树结构
 - getPDG: 生成程序依赖图(PDG)
 - getCWEInfo: 查询CWE漏洞分类信息
+- runCommand: 在目标环境中执行 shell 命令（编译、运行测试、漏洞复现等）
+- adjustDiff: 根据用户需求修改补丁 diff
 
 请用中文回答，对安全问题给出专业、准确的分析。
-当用户提交代码时，主动分析其中的安全风险。`;
+当用户提交代码时，主动分析其中的安全风险。
+当用户提供测试命令时，使用 runCommand 工具执行并分析结果。
+当用户要求修改 diff 时，使用 adjustDiff 工具进行调整。`;
+
+// Runtime config (can be updated at runtime via updateRuntimeConfig)
+let runtimeConfig: { apiKey?: string; baseUrl?: string; model?: string } = {};
+
+export function updateRuntimeConfig(config: { apiKey?: string; baseUrl?: string; model?: string }) {
+  runtimeConfig = { ...runtimeConfig, ...config };
+}
 
 function getConfig() {
-  const apiKey = import.meta.env.VITE_LLM_API_KEY || '';
-  const baseUrl = (import.meta.env.VITE_LLM_BASE_URL || 'https://api.deepseek.com/v1').replace(/\/+$/, '');
-  const model = import.meta.env.VITE_LLM_MODEL || 'deepseek-chat';
+  const apiKey = runtimeConfig.apiKey ?? import.meta.env.VITE_LLM_API_KEY ?? '';
+  const baseUrl = (runtimeConfig.baseUrl ?? import.meta.env.VITE_LLM_BASE_URL ?? 'https://api.deepseek.com/v1').replace(/\/+$/, '');
+  const model = runtimeConfig.model ?? import.meta.env.VITE_LLM_MODEL ?? 'deepseek-chat';
   return { apiKey, baseUrl, model };
 }
 
@@ -190,17 +201,25 @@ async function* mockStreamResponse(userMessage: string): AsyncGenerator<StreamCh
 
 // --- Public API ---
 
+export interface SendMessageResult {
+  hasToolCalls: boolean;
+  toolCalls: Array<{ id: string; name: string; arguments: Record<string, unknown> }>;
+}
+
 export interface SendMessageOptions {
   messages: ChatMessage[];
   onContent: (text: string) => void;
   onToolCall: (delta: ToolCallDelta) => void;
-  onDone: () => void;
+  onDone: (result: SendMessageResult) => void;
   onError: (error: string) => void;
 }
 
 export async function sendMessage(options: SendMessageOptions): Promise<void> {
   const { messages, onContent, onToolCall, onDone, onError } = options;
   const lastUserMsg = [...messages].reverse().find((m) => m.role === 'user');
+
+  // Accumulate tool calls across streaming chunks
+  const toolCallMap = new Map<number, { id: string; name: string; argsStr: string }>();
 
   try {
     let generator: AsyncGenerator<StreamChunk>;
@@ -217,15 +236,28 @@ export async function sendMessage(options: SendMessageOptions): Promise<void> {
         case 'content':
           onContent(chunk.text!);
           break;
-        case 'tool_calls':
-          onToolCall(chunk.toolCallDelta!);
+        case 'tool_calls': {
+          const delta = chunk.toolCallDelta!;
+          const existing = toolCallMap.get(delta.index) || { id: '', name: '', argsStr: '' };
+          if (delta.id) existing.id = delta.id;
+          if (delta.name) existing.name = delta.name;
+          if (delta.argumentsDelta) existing.argsStr += delta.argumentsDelta;
+          toolCallMap.set(delta.index, existing);
+          onToolCall(delta);
           break;
-        case 'done':
-          onDone();
+        }
+        case 'done': {
+          const toolCalls = Array.from(toolCallMap.values()).map((tc) => {
+            let args: Record<string, unknown> = {};
+            try { args = JSON.parse(tc.argsStr); } catch { /* still accumulating */ }
+            return { id: tc.id, name: tc.name, arguments: args };
+          });
+          onDone({ hasToolCalls: toolCalls.length > 0, toolCalls });
           return;
+        }
       }
     }
-    onDone();
+    onDone({ hasToolCalls: false, toolCalls: [] });
   } catch (err) {
     onError(err instanceof Error ? err.message : '请求失败，请检查网络连接');
   }

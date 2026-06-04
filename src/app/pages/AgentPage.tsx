@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef, useReducer } from 'react';
+import { useState, useCallback, useRef, useReducer, useEffect } from 'react';
 import { useNavigate } from 'react-router';
 import { motion } from 'motion/react';
 import { ArrowLeft, Settings, Bot } from 'lucide-react';
@@ -9,9 +9,9 @@ import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import { ChatPanel } from '../components/agent/ChatPanel';
 import { AnalysisPanel } from '../components/agent/AnalysisPanel';
-import { sendMessage } from '../lib/llm-client';
+import { sendMessage, updateRuntimeConfig } from '../lib/llm-client';
 import { executeTool } from '../lib/agent-tools';
-import type { ChatMessage, ToolCall, ToolCallDelta, CWEResult, SecurityAuditResult } from '../lib/agent-types';
+import type { ChatMessage, ToolCall, ToolCallDelta, CWEResult, SecurityAuditResult, CommandResult, DiffAdjustment } from '../lib/agent-types';
 
 // --- State Management ---
 
@@ -21,17 +21,20 @@ interface AgentState {
   toolCalls: ToolCall[];
   cweResults: CWEResult[];
   auditResults: SecurityAuditResult[];
+  commandResults: CommandResult[];
+  diffAdjustments: DiffAdjustment[];
 }
 
 type Action =
   | { type: 'ADD_MESSAGE'; payload: ChatMessage }
-  | { type: 'UPDATE_LAST_ASSISTANT'; payload: { content: string; isStreaming?: boolean } }
+  | { type: 'UPDATE_LAST_ASSISTANT'; payload: { content: string; isStreaming?: boolean; toolCalls?: ToolCall[] } }
   | { type: 'SET_STREAMING'; payload: boolean }
   | { type: 'ADD_TOOL_CALL'; payload: ToolCall }
   | { type: 'UPDATE_TOOL_CALL'; payload: { id: string; updates: Partial<ToolCall> } }
-  | { type: 'SET_TOOL_CALLS'; payload: ToolCall[] }
   | { type: 'ADD_CWE_RESULT'; payload: CWEResult }
-  | { type: 'ADD_AUDIT_RESULT'; payload: SecurityAuditResult };
+  | { type: 'ADD_AUDIT_RESULT'; payload: SecurityAuditResult }
+  | { type: 'ADD_COMMAND_RESULT'; payload: CommandResult }
+  | { type: 'ADD_DIFF_ADJUSTMENT'; payload: DiffAdjustment };
 
 let messageCounter = 0;
 function genId() {
@@ -62,12 +65,14 @@ function reducer(state: AgentState, action: Action): AgentState {
         ),
       };
     }
-    case 'SET_TOOL_CALLS':
-      return { ...state, toolCalls: action.payload };
     case 'ADD_CWE_RESULT':
       return { ...state, cweResults: [...state.cweResults, action.payload] };
     case 'ADD_AUDIT_RESULT':
       return { ...state, auditResults: [...state.auditResults, action.payload] };
+    case 'ADD_COMMAND_RESULT':
+      return { ...state, commandResults: [...state.commandResults, action.payload] };
+    case 'ADD_DIFF_ADJUSTMENT':
+      return { ...state, diffAdjustments: [...state.diffAdjustments, action.payload] };
     default:
       return state;
   }
@@ -79,6 +84,8 @@ const initialState: AgentState = {
   toolCalls: [],
   cweResults: [],
   auditResults: [],
+  commandResults: [],
+  diffAdjustments: [],
 };
 
 // --- Page Component ---
@@ -91,19 +98,56 @@ export function AgentPage() {
   const [baseUrl, setBaseUrl] = useState(import.meta.env.VITE_LLM_BASE_URL || 'https://api.deepseek.com/v1');
   const [model, setModel] = useState(import.meta.env.VITE_LLM_MODEL || 'deepseek-chat');
   const abortRef = useRef(false);
+  const stateRef = useRef(state);
+  stateRef.current = state;
 
-  const handleSend = useCallback(
-    async (content: string) => {
-      abortRef.current = false;
+  // Read context from sessionStorage on mount
+  useEffect(() => {
+    const ctxStr = sessionStorage.getItem('agent_context');
+    if (!ctxStr) return;
+    sessionStorage.removeItem('agent_context');
+    try {
+      const ctx = JSON.parse(ctxStr);
+      if (ctx.mode === 'verify' && ctx.diff) {
+        const diffText = ctx.diff.before.map((l: string) => `- ${l}`).join('\n')
+          + '\n'
+          + ctx.diff.after.map((l: string) => `+ ${l}`).join('\n');
+        const meta = ctx.metadata ? `\n漏洞类型：${ctx.metadata.vulnType || '未知'}\n修复策略：${ctx.metadata.fixStrategy || '未知'}` : '';
+        setTimeout(() => {
+          handleSendDirect(`请帮我验证以下补丁的有效性。我会提供测试命令来验证漏洞是否被修复。\n\n补丁 diff：\n\`\`\`\n${diffText}\n\`\`\`${meta}\n\n请先分析补丁的修复逻辑，然后等待我提供测试命令。`);
+        }, 500);
+      } else if (ctx.mode === 'adjust' && ctx.diff) {
+        const diffText = ctx.diff.before.map((l: string) => `- ${l}`).join('\n')
+          + '\n'
+          + ctx.diff.after.map((l: string) => `+ ${l}`).join('\n');
+        setTimeout(() => {
+          handleSendDirect(`请帮我微调以下补丁 diff。我会告诉你需要哪些修改。\n\n当前 diff：\n\`\`\`\n${diffText}\n\`\`\`\n\n请分析当前补丁，等待我的修改需求。`);
+        }, 500);
+      }
+    } catch { /* ignore parse errors */ }
+  }, []);
 
-      const userMsg: ChatMessage = {
-        id: genId(),
-        role: 'user',
-        content,
-        timestamp: Date.now(),
-      };
-      dispatch({ type: 'ADD_MESSAGE', payload: userMsg });
+  // Internal send without user message (for auto-sends)
+  const handleSendDirect = useCallback(async (content: string) => {
+    const userMsg: ChatMessage = { id: genId(), role: 'user', content, timestamp: Date.now() };
+    dispatch({ type: 'ADD_MESSAGE', payload: userMsg });
+    dispatch({ type: 'SET_STREAMING', payload: true });
+    await runAgentLoop([...stateRef.current.messages, userMsg]);
+  }, []);
 
+  // Agent loop: send message → execute tools → feed results back → repeat
+  const runAgentLoop = useCallback(async (messages: ChatMessage[]) => {
+    abortRef.current = false;
+    let loopMessages = [...messages];
+    const MAX_LOOPS = 10; // safety limit
+
+    for (let i = 0; i < MAX_LOOPS; i++) {
+      if (abortRef.current) break;
+
+      let accumulated = '';
+      const pendingToolCalls: Map<number, ToolCall> = new Map();
+
+      // Create assistant message for this round
       const assistantMsg: ChatMessage = {
         id: genId(),
         role: 'assistant',
@@ -112,95 +156,102 @@ export function AgentPage() {
         isStreaming: true,
       };
       dispatch({ type: 'ADD_MESSAGE', payload: assistantMsg });
-      dispatch({ type: 'SET_STREAMING', payload: true });
 
-      const currentMessages = [...state.messages, userMsg, assistantMsg];
-
-      let accumulated = '';
-      const pendingToolCalls: Map<number, ToolCall> = new Map();
-
-      await sendMessage({
-        messages: currentMessages,
-        onContent: (text) => {
-          if (abortRef.current) return;
-          accumulated += text;
-          dispatch({
-            type: 'UPDATE_LAST_ASSISTANT',
-            payload: { content: accumulated, isStreaming: true },
-          });
-        },
-        onToolCall: (delta: ToolCallDelta) => {
-          if (abortRef.current) return;
-          const existing = pendingToolCalls.get(delta.index) || {
-            id: delta.id || `tc-${Date.now()}-${delta.index}`,
-            name: '',
-            arguments: {},
-            status: 'pending' as const,
-          };
-          if (delta.id) existing.id = delta.id;
-          if (delta.name) existing.name = delta.name;
-          if (delta.argumentsDelta) {
-            try {
-              const parsed = JSON.parse(delta.argumentsDelta);
-              existing.arguments = { ...existing.arguments, ...parsed };
-            } catch {
-              // arguments still accumulating
+      const result = await new Promise<{ hasToolCalls: boolean; toolCalls: Array<{ id: string; name: string; arguments: Record<string, unknown> }> } | null>((resolve) => {
+        sendMessage({
+          messages: [...loopMessages, assistantMsg],
+          onContent: (text) => {
+            if (abortRef.current) return;
+            accumulated += text;
+            dispatch({ type: 'UPDATE_LAST_ASSISTANT', payload: { content: accumulated, isStreaming: true } });
+          },
+          onToolCall: (delta: ToolCallDelta) => {
+            if (abortRef.current) return;
+            const existing = pendingToolCalls.get(delta.index) || {
+              id: delta.id || `tc-${Date.now()}-${delta.index}`,
+              name: '',
+              arguments: {},
+              status: 'pending' as const,
+            };
+            if (delta.id) existing.id = delta.id;
+            if (delta.name) existing.name = delta.name;
+            if (delta.argumentsDelta) {
+              try {
+                const parsed = JSON.parse(delta.argumentsDelta);
+                existing.arguments = { ...existing.arguments, ...parsed };
+              } catch { /* still accumulating */ }
             }
-          }
-          pendingToolCalls.set(delta.index, existing);
-        },
-        onDone: async () => {
-          if (abortRef.current) return;
-
-          // Execute tool calls if any
-          if (pendingToolCalls.size > 0) {
-            const toolCallsArray = Array.from(pendingToolCalls.values());
-            dispatch({
-              type: 'UPDATE_LAST_ASSISTANT',
-              payload: { content: accumulated, toolCalls: toolCallsArray, isStreaming: false },
-            });
-
-            for (const tc of toolCallsArray) {
-              dispatch({ type: 'ADD_TOOL_CALL', payload: { ...tc, status: 'running' } });
-
-              const result = await executeTool(tc.name, tc.arguments);
-              const completedTc = { ...tc, result, status: 'completed' as const };
-              dispatch({
-                type: 'UPDATE_TOOL_CALL',
-                payload: { id: tc.id, updates: { result, status: 'completed' } },
-              });
-
-              // Extract structured results
-              if (tc.name === 'getCWEInfo' && result.success) {
-                dispatch({ type: 'ADD_CWE_RESULT', payload: result.data as CWEResult });
-              }
-              if (tc.name === 'analyzeAST' && result.success) {
-                // Could extract audit info from AST analysis
-              }
-            }
-
-            // Send tool results back for a follow-up response
-            // For simplicity in mock mode, we just mark as done
-          }
-
-          dispatch({ type: 'UPDATE_LAST_ASSISTANT', payload: { content: accumulated, isStreaming: false } });
-          dispatch({ type: 'SET_STREAMING', payload: false });
-        },
-        onError: (error) => {
-          if (abortRef.current) return;
-          dispatch({
-            type: 'UPDATE_LAST_ASSISTANT',
-            payload: {
-              content: `抱歉，发生了错误：${error}\n\n请检查 API 配置或网络连接后重试。`,
-              isStreaming: false,
-            },
-          });
-          dispatch({ type: 'SET_STREAMING', payload: false });
-        },
+            pendingToolCalls.set(delta.index, existing);
+          },
+          onDone: (r) => resolve(r),
+          onError: (error) => {
+            dispatch({ type: 'UPDATE_LAST_ASSISTANT', payload: { content: `抱歉，发生了错误：${error}`, isStreaming: false } });
+            dispatch({ type: 'SET_STREAMING', payload: false });
+            resolve(null);
+          },
+        });
       });
-    },
-    [state.messages],
-  );
+
+      if (!result || abortRef.current) break;
+
+      if (!result.hasToolCalls) {
+        // No more tool calls, mark as done
+        dispatch({ type: 'UPDATE_LAST_ASSISTANT', payload: { content: accumulated, isStreaming: false } });
+        dispatch({ type: 'SET_STREAMING', payload: false });
+        return;
+      }
+
+      // Execute tool calls
+      const toolCallsArray = Array.from(pendingToolCalls.values());
+      dispatch({ type: 'UPDATE_LAST_ASSISTANT', payload: { content: accumulated, toolCalls: toolCallsArray, isStreaming: false } });
+
+      // Build tool result messages to feed back to LLM
+      const toolResultMessages: ChatMessage[] = [];
+
+      for (const tc of toolCallsArray) {
+        dispatch({ type: 'ADD_TOOL_CALL', payload: { ...tc, status: 'running' } });
+
+        const toolResult = await executeTool(tc.name, tc.arguments);
+
+        dispatch({ type: 'UPDATE_TOOL_CALL', payload: { id: tc.id, updates: { result: toolResult, status: 'completed' } } });
+
+        // Extract structured results for the analysis panel
+        if (tc.name === 'getCWEInfo' && toolResult.success) {
+          dispatch({ type: 'ADD_CWE_RESULT', payload: toolResult.data as CWEResult });
+        }
+        if (tc.name === 'runCommand' && toolResult.success) {
+          dispatch({ type: 'ADD_COMMAND_RESULT', payload: toolResult.data as CommandResult });
+        }
+        if (tc.name === 'adjustDiff' && toolResult.success) {
+          dispatch({ type: 'ADD_DIFF_ADJUSTMENT', payload: toolResult.data as DiffAdjustment });
+        }
+
+        // Create tool result message for LLM
+        toolResultMessages.push({
+          id: genId(),
+          role: 'tool',
+          content: JSON.stringify(toolResult.data),
+          timestamp: Date.now(),
+          toolCallId: tc.id,
+        });
+      }
+
+      // Update loop messages: add assistant msg (with tool calls) + tool results
+      const updatedAssistantMsg = { ...assistantMsg, content: accumulated, toolCalls: toolCallsArray, isStreaming: false };
+      loopMessages = [...loopMessages, updatedAssistantMsg, ...toolResultMessages];
+    }
+
+    // Safety exit
+    dispatch({ type: 'SET_STREAMING', payload: false });
+  }, []);
+
+  const handleSend = useCallback(async (content: string) => {
+    abortRef.current = false;
+    const userMsg: ChatMessage = { id: genId(), role: 'user', content, timestamp: Date.now() };
+    dispatch({ type: 'ADD_MESSAGE', payload: userMsg });
+    dispatch({ type: 'SET_STREAMING', payload: true });
+    await runAgentLoop([...stateRef.current.messages, userMsg]);
+  }, [runAgentLoop]);
 
   return (
     <div className="min-h-screen bg-white relative overflow-hidden">
@@ -255,7 +306,7 @@ export function AgentPage() {
               </div>
               <div>
                 <h1 className="text-base font-semibold text-slate-900">AI 安全分析助手</h1>
-                <p className="text-[11px] text-slate-500">漏洞分类 · 代码审计 · 安全分析</p>
+                <p className="text-[11px] text-slate-500">漏洞分类 · 补丁验证 · Diff 微调 · 安全审计</p>
               </div>
             </div>
           </div>
@@ -290,6 +341,8 @@ export function AgentPage() {
               <AnalysisPanel
                 cweResults={state.cweResults}
                 auditResults={state.auditResults}
+                commandResults={state.commandResults}
+                diffAdjustments={state.diffAdjustments}
                 toolCalls={state.toolCalls}
               />
             </ResizablePanel>
@@ -336,12 +389,18 @@ export function AgentPage() {
               />
             </div>
             <p className="text-xs text-slate-500">
-              提示：留空 API Key 将使用 Mock 模式演示。配置后请刷新页面生效。
+              提示：留空 API Key 将使用 Mock 模式演示。保存后立即生效。
             </p>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setConfigOpen(false)}>
-              关闭
+              取消
+            </Button>
+            <Button onClick={() => {
+              updateRuntimeConfig({ apiKey, baseUrl, model });
+              setConfigOpen(false);
+            }}>
+              保存
             </Button>
           </DialogFooter>
         </DialogContent>

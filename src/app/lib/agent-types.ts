@@ -73,3 +73,26 @@ export interface OpenAIToolDefinition {
     };
   };
 }
+
+export interface CommandResult {
+  exitCode: number;
+  stdout: string;
+  stderr: string;
+  duration: number;
+}
+
+export interface DiffAdjustment {
+  newDiff: string;
+  changes: string[];
+  reasoning: string;
+}
+
+export interface PatchContext {
+  mode: 'verify' | 'adjust';
+  diff: { before: string[]; after: string[] };
+  metadata?: {
+    vulnType?: string;
+    fixStrategy?: string;
+    confidence?: number;
+  };
+}

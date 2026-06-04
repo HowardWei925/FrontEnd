@@ -1,5 +1,5 @@
 import { motion } from 'motion/react';
-import { ArrowLeft, GitCompare, ArrowDown, Info, Sparkles, ArrowRight, Network, Bot } from 'lucide-react';
+import { ArrowLeft, GitCompare, ArrowDown, Info, Sparkles, ArrowRight, Network, Bot, Play } from 'lucide-react';
 import { useNavigate } from 'react-router';
 import { Button } from '../components/ui/button';
 
@@ -258,15 +258,38 @@ export function CodeComparisonPage() {
           </div>
 
           <div className="mt-6 pt-6 border-t border-slate-200 space-y-3">
-            <Button
-              onClick={() => navigate('/agent')}
-              variant="outline"
-              className="w-full border-cyan-300 bg-cyan-50/50 text-cyan-700 hover:bg-cyan-100 hover:border-cyan-400 font-medium shadow-sm transition-all"
-            >
-              <Bot className="w-4 h-4 mr-2" />
-              使用 AI 深度分析漏洞
-              <ArrowRight className="w-4 h-4 ml-2" />
-            </Button>
+            <div className="grid grid-cols-2 gap-3">
+              <Button
+                onClick={() => {
+                  sessionStorage.setItem('agent_context', JSON.stringify({
+                    mode: 'verify',
+                    diff: { before: patchedCodeText, after: targetText },
+                    metadata: { vulnType: '缓冲区溢出 (CWE-120)', fixStrategy: '边界检查', confidence: 97.8 },
+                  }));
+                  navigate('/agent');
+                }}
+                variant="outline"
+                className="w-full border-cyan-300 bg-cyan-50/50 text-cyan-700 hover:bg-cyan-100 hover:border-cyan-400 font-medium shadow-sm transition-all"
+              >
+                <Play className="w-4 h-4 mr-2" />
+                AI 验证补丁
+              </Button>
+              <Button
+                onClick={() => {
+                  sessionStorage.setItem('agent_context', JSON.stringify({
+                    mode: 'adjust',
+                    diff: { before: patchedCodeText, after: targetText },
+                    metadata: { vulnType: '缓冲区溢出 (CWE-120)', fixStrategy: '边界检查' },
+                  }));
+                  navigate('/agent');
+                }}
+                variant="outline"
+                className="w-full border-orange-300 bg-orange-50/50 text-orange-700 hover:bg-orange-100 hover:border-orange-400 font-medium shadow-sm transition-all"
+              >
+                <GitCompare className="w-4 h-4 mr-2" />
+                AI 微调补丁
+              </Button>
+            </div>
             <Button
               onClick={() => navigate('/semantic-mapping')}
               className="w-full bg-slate-900 hover:bg-slate-800 text-white font-medium shadow-sm transition-all"

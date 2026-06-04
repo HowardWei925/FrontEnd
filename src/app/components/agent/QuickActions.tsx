@@ -1,4 +1,4 @@
-import { ShieldAlert, Search, Database, Code } from 'lucide-react';
+import { ShieldAlert, Search, Database, Code, Play, GitCompare } from 'lucide-react';
 import { Button } from '../ui/button';
 
 interface QuickAction {
@@ -24,9 +24,14 @@ const quickActions: QuickAction[] = [
     prompt: '请详细解释 CWE-120（缓冲区溢出）漏洞的原理、危害和修复方法。',
   },
   {
-    label: '解释代码语义',
-    icon: Code,
-    prompt: '请解释以下代码的语义和功能，并分析其中的安全风险：\n\n```c\nvoid copy_input(char *dst, const char *src) {\n    while (*src) {\n        *dst++ = *src++;\n    }\n    *dst = \'\\0\';\n}\n```',
+    label: '验证补丁',
+    icon: Play,
+    prompt: '请帮我验证补丁的有效性。我会提供测试命令，请执行命令来判断漏洞是否被修复。',
+  },
+  {
+    label: '微调补丁',
+    icon: GitCompare,
+    prompt: '请帮我微调当前的补丁 diff，我会告诉你具体的修改需求。',
   },
 ];
 

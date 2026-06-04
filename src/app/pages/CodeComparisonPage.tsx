@@ -1,5 +1,5 @@
 import { motion } from 'motion/react';
-import { ArrowLeft, GitCompare, ArrowDown, Info, Sparkles, ArrowRight, Network } from 'lucide-react';
+import { ArrowLeft, GitCompare, ArrowDown, Info, Sparkles, ArrowRight, Network, Bot } from 'lucide-react';
 import { useNavigate } from 'react-router';
 import { Button } from '../components/ui/button';
 
@@ -174,10 +174,14 @@ export function CodeComparisonPage() {
               </div>
               <p className="text-slate-600">修复版本 → 目标版本的补丁移植差异</p>
             </div>
-            <div className="flex items-center gap-2 px-4 py-2 bg-cyan-500/10 border border-cyan-400 rounded-lg">
-              <Sparkles className="w-4 h-4 text-cyan-600" />
-              <span className="text-sm text-cyan-700">AI 分析</span>
-            </div>
+            <Button
+              onClick={() => navigate('/agent')}
+              variant="outline"
+              className="border-cyan-300 bg-cyan-50/50 text-cyan-700 hover:bg-cyan-100 hover:border-cyan-400"
+            >
+              <Bot className="w-4 h-4 mr-1.5" />
+              AI 安全分析
+            </Button>
           </div>
         </motion.div>
 
@@ -253,7 +257,16 @@ export function CodeComparisonPage() {
             </div>
           </div>
 
-          <div className="mt-6 pt-6 border-t border-slate-200">
+          <div className="mt-6 pt-6 border-t border-slate-200 space-y-3">
+            <Button
+              onClick={() => navigate('/agent')}
+              variant="outline"
+              className="w-full border-cyan-300 bg-cyan-50/50 text-cyan-700 hover:bg-cyan-100 hover:border-cyan-400 font-medium shadow-sm transition-all"
+            >
+              <Bot className="w-4 h-4 mr-2" />
+              使用 AI 深度分析漏洞
+              <ArrowRight className="w-4 h-4 ml-2" />
+            </Button>
             <Button
               onClick={() => navigate('/semantic-mapping')}
               className="w-full bg-slate-900 hover:bg-slate-800 text-white font-medium shadow-sm transition-all"

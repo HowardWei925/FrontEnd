@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router';
 import { motion } from 'motion/react';
-import { ArrowLeftRight, ArrowRight, Play, Shield, Sparkles } from 'lucide-react';
+import { ArrowLeftRight, ArrowRight, Bot, Play, Shield, Sparkles } from 'lucide-react';
 import { CodeVersionInput } from '../components/CodeVersionInput';
 import { Button } from '../components/ui/button';
 
@@ -57,14 +57,24 @@ export function TaskCreationPage() {
           animate={{ opacity: 1, y: 0 }}
           className="text-center mb-16 relative pt-14 sm:pt-0"
         >
-          <Button
-            onClick={() => navigate('/history')}
-            variant="outline"
-            className="absolute right-0 top-0 border-slate-300 bg-white/90 text-slate-700 hover:border-cyan-500 hover:text-cyan-700"
-          >
-            <ArrowLeftRight className="w-4 h-4 mr-1" />
-            历史记录
-          </Button>
+          <div className="absolute right-0 top-0 flex gap-2">
+            <Button
+              onClick={() => navigate('/agent')}
+              variant="outline"
+              className="border-slate-300 bg-white/90 text-slate-700 hover:border-cyan-500 hover:text-cyan-700"
+            >
+              <Bot className="w-4 h-4 mr-1" />
+              AI 分析
+            </Button>
+            <Button
+              onClick={() => navigate('/history')}
+              variant="outline"
+              className="border-slate-300 bg-white/90 text-slate-700 hover:border-cyan-500 hover:text-cyan-700"
+            >
+              <ArrowLeftRight className="w-4 h-4 mr-1" />
+              历史记录
+            </Button>
+          </div>
 
           <div className="flex items-center justify-center gap-3 mb-4">
             <Shield className="w-10 h-10 text-cyan-600" />

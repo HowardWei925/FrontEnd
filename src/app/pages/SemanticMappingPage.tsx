@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { motion } from 'motion/react';
 import { 
   ArrowLeft, Network, TrendingUp, Code2, Hash, GitBranch, 
-  CheckCircle2, AlertCircle, BarChart3, Share2, FileSearch 
+  CheckCircle2, AlertCircle, BarChart3, Share2, FileSearch
 } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router';
 import { Button } from '../components/ui/button';

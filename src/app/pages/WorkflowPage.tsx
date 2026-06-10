@@ -86,14 +86,7 @@ export function WorkflowPage() {
         // 到达第4步，停止定时器
         clearInterval(timer);
         setIsLoading(false);
-
-        // 没有 PoC → 直接完成
-        if (pocInputs.length === 0) {
-          setIsDone(true);
-        } else {
-          // 有 PoC → 执行验证
-          runPocVerification();
-        }
+        setIsDone(true);
         return prev;
       });
     }, 3000);
@@ -101,15 +94,20 @@ export function WorkflowPage() {
     return () => clearInterval(timer);
   }, []);
 
-  // 没有 PoC 时自动跳转（延迟 2 秒让用户看到完成状态）
+  // 完成后：有 PoC 就验证，没有就跳转
   useEffect(() => {
-    if (isDone && pocInputs.length === 0) {
+    if (!isDone) return;
+
+    if (pocInputs.length > 0) {
+      runPocVerification();
+    } else {
+      // 没有 PoC，延迟跳转
       const timer = setTimeout(() => {
         navigate('/semantic-mapping');
       }, 2000);
       return () => clearTimeout(timer);
     }
-  }, [isDone, pocInputs, navigate]);
+  }, [isDone]);
 
   const getStepContent = () => {
     switch (currentStep) {

@@ -104,7 +104,7 @@ export function WorkflowPage() {
       // 没有 PoC，延迟跳转
       const timer = setTimeout(() => {
         navigate('/semantic-mapping');
-      }, 2000);
+      }, 3000);
       return () => clearTimeout(timer);
     }
   }, [isDone]);

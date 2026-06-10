@@ -75,16 +75,21 @@ export function WorkflowPage() {
     sessionStorage.setItem('target_code', targetCode);
   };
 
-  // 模拟工作流进度
+  // 有 PoC 时跑满 4 步，没有 PoC 时跑满 4 步但在第 4 步直接完成
+  const totalSteps = 4;
+
   useEffect(() => {
     const timer = setInterval(() => {
       setCurrentStep((prev) => {
-        if (prev < 4) {
+        if (prev < totalSteps) {
           return prev + 1;
         }
+        // 到达最后一步，停止定时器
+        clearInterval(timer);
         setIsLoading(false);
-        // 到达验证步骤时自动执行 PoC 验证
-        if (pocInputs.length > 0) {
+
+        // 有 PoC 时自动执行验证
+        if (pocInputs.length > 0 && pocResults.length === 0) {
           runPocVerification();
         }
         return prev;
@@ -92,7 +97,7 @@ export function WorkflowPage() {
     }, 3000);
 
     return () => clearInterval(timer);
-  }, [pocInputs, targetCode]);
+  }, []);
 
   const getStepContent = () => {
     switch (currentStep) {
@@ -130,19 +135,21 @@ export function WorkflowPage() {
           ],
         };
       case 4:
+        if (pocInputs.length === 0) {
+          return {
+            title: '完成 (Done)',
+            description: '补丁移植流程已完成，未配置 PoC 验证',
+            details: [
+              '补丁已成功移植到目标版本',
+              '可查看语义映射分析',
+              '可查看代码对比差异',
+            ],
+          };
+        }
         return {
           title: '验证 (Verification)',
-          description: pocInputs.length > 0
-            ? `正在执行 ${pocInputs.length} 个 PoC 验证...`
-            : '运行综合测试以验证补丁有效性...',
-          details: pocInputs.length > 0
-            ? pocInputs.map((p, i) => `PoC #${i + 1}: ${p.description || p.content.substring(0, 50)}...`)
-            : [
-                '编译修改后的目标代码',
-                '执行概念验证 (PoC) 漏洞利用',
-                '运行单元测试集',
-                '验证安全属性',
-              ],
+          description: `正在执行 ${pocInputs.length} 个 PoC 验证...`,
+          details: pocInputs.map((p, i) => `PoC #${i + 1}: ${p.description || p.content.substring(0, 50)}...`),
         };
       default:
         return {

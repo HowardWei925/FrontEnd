@@ -195,10 +195,40 @@ class SandboxExecutor:
         # 一次性执行
         result = self.execute_command(combined_cmd, timeout=30)
 
+        # 判断补丁是否有效
+        # 逻辑：
+        # 1. 如果 PoC 执行成功（exit_code == 0）且输出正常 → 补丁有效（PoC 未能触发漏洞）
+        # 2. 如果 PoC 执行失败（exit_code != 0）或崩溃 → 补丁可能无效（需要进一步分析）
+        # 3. 如果 PoC 输出包含 "exploit"、"overflow"、"crash" 等关键词 → 可能是漏洞利用代码
+
+        poc_output = result.stdout + result.stderr
+        is_exploit = any(keyword in poc_output.lower() for keyword in [
+            'exploit', 'overflow', 'crash', 'segmentation fault', 'core dumped',
+            'buffer overflow', 'stack smashing', 'attack', 'vulnerable'
+        ])
+
+        # 判断状态
+        if result.exit_code == 0:
+            # PoC 执行成功，检查输出
+            if is_exploit:
+                # 虽然执行成功，但输出包含漏洞利用特征 → 补丁可能无效
+                step_status = "failed"
+            else:
+                # 正常执行，补丁有效
+                step_status = "passed"
+        else:
+            # PoC 执行失败
+            if is_exploit or result.exit_code == -11:  # SIGSEGV
+                # 崩溃可能是漏洞触发成功 → 补丁无效
+                step_status = "failed"
+            else:
+                # 其他失败（编译错误等）→ 需要人工判断
+                step_status = "failed"
+
         steps.append(VerificationStep(
             id=f"{poc_id}-step-1",
             name="编译并执行 PoC",
-            status="passed" if result.exit_code == 0 else "failed",
+            status=step_status,
             command=exec_cmd,
             stdout=result.stdout,
             stderr=result.stderr,

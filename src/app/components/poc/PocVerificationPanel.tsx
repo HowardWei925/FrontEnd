@@ -1,6 +1,6 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { motion } from 'motion/react';
-import { Play, RotateCcw, Shield, Zap } from 'lucide-react';
+import { Play, RotateCcw, Shield, Zap, CheckCircle2, XCircle } from 'lucide-react';
 import { Button } from '../ui/button';
 import { PocInput } from './PocInput';
 import { PocResultCard } from './PocResultCard';
@@ -10,13 +10,48 @@ import { executeTool } from '../../lib/agent-tools';
 interface PocVerificationPanelProps {
   targetCode?: string;
   diff?: { before: string[]; after: string[] };
+  initialPocs?: PocInputType[];
+  initialResults?: PocVerificationResult[];
+  onVerificationComplete?: (results: PocVerificationResult[]) => void;
 }
 
-export function PocVerificationPanel({ targetCode, diff }: PocVerificationPanelProps) {
-  const [pocs, setPocs] = useState<PocInputType[]>([]);
-  const [results, setResults] = useState<PocVerificationResult[]>([]);
+export function PocVerificationPanel({
+  targetCode,
+  diff,
+  initialPocs,
+  initialResults,
+  onVerificationComplete,
+}: PocVerificationPanelProps) {
+  const [pocs, setPocs] = useState<PocInputType[]>(initialPocs || []);
+  const [results, setResults] = useState<PocVerificationResult[]>(initialResults || []);
   const [isRunning, setIsRunning] = useState(false);
   const [currentPocIndex, setCurrentPocIndex] = useState(-1);
+
+  // 从 sessionStorage 读取初始数据
+  useEffect(() => {
+    if (!initialPocs) {
+      const stored = sessionStorage.getItem('poc_inputs');
+      if (stored) {
+        try {
+          setPocs(JSON.parse(stored));
+        } catch { /* ignore */ }
+      }
+    }
+    if (!initialResults) {
+      const storedResults = sessionStorage.getItem('poc_results');
+      if (storedResults) {
+        try {
+          setResults(JSON.parse(storedResults));
+        } catch { /* ignore */ }
+      }
+    }
+    if (!targetCode) {
+      const storedCode = sessionStorage.getItem('target_code');
+      if (storedCode) {
+        // 这里需要通过 props 传入，或者直接使用
+      }
+    }
+  }, [initialPocs, initialResults, targetCode]);
 
   const runVerification = useCallback(async () => {
     if (pocs.length === 0 || isRunning) return;
@@ -62,16 +97,33 @@ export function PocVerificationPanel({ targetCode, diff }: PocVerificationPanelP
 
     setCurrentPocIndex(-1);
     setIsRunning(false);
-  }, [pocs, isRunning, targetCode]);
+
+    // 存储结果到 sessionStorage
+    sessionStorage.setItem('poc_results', JSON.stringify(newResults));
+
+    // 回调通知父组件
+    if (onVerificationComplete) {
+      onVerificationComplete(newResults);
+    }
+  }, [pocs, isRunning, targetCode, onVerificationComplete]);
 
   const reset = () => {
     setPocs([]);
     setResults([]);
     setCurrentPocIndex(-1);
+    sessionStorage.removeItem('poc_results');
+  };
+
+  const retryVerification = () => {
+    setResults([]);
+    runVerification();
   };
 
   const passedCount = results.filter(r => r.status === 'passed').length;
+  const failedCount = results.filter(r => r.status === 'failed').length;
   const totalCount = results.length;
+  const allPassed = totalCount > 0 && passedCount === totalCount;
+  const hasFailed = failedCount > 0;
 
   return (
     <div className="space-y-6">
@@ -86,15 +138,23 @@ export function PocVerificationPanel({ targetCode, diff }: PocVerificationPanelP
             <p className="text-sm text-slate-500">验证补丁是否有效防御漏洞</p>
           </div>
         </div>
-        {results.length > 0 && (
+        {totalCount > 0 && (
           <div className="flex items-center gap-2">
-            <div className={`px-3 py-1 rounded-full text-sm font-medium ${
-              passedCount === totalCount
-                ? 'bg-emerald-100 text-emerald-700'
-                : 'bg-red-100 text-red-700'
-            }`}>
-              {passedCount}/{totalCount} 通过
-            </div>
+            {allPassed ? (
+              <div className="flex items-center gap-1 px-3 py-1 rounded-full text-sm font-medium bg-emerald-100 text-emerald-700">
+                <CheckCircle2 className="w-4 h-4" />
+                全部通过
+              </div>
+            ) : hasFailed ? (
+              <div className="flex items-center gap-1 px-3 py-1 rounded-full text-sm font-medium bg-red-100 text-red-700">
+                <XCircle className="w-4 h-4" />
+                {failedCount} 个失败
+              </div>
+            ) : (
+              <div className="px-3 py-1 rounded-full text-sm font-medium bg-slate-100 text-slate-700">
+                {passedCount}/{totalCount} 通过
+              </div>
+            )}
           </div>
         )}
       </div>
@@ -116,6 +176,11 @@ export function PocVerificationPanel({ targetCode, diff }: PocVerificationPanelP
               <Zap className="w-4 h-4 mr-2 animate-pulse" />
               验证中... ({currentPocIndex + 1}/{pocs.length})
             </>
+          ) : totalCount > 0 && hasFailed ? (
+            <>
+              <RotateCcw className="w-4 h-4 mr-2" />
+              重新验证 ({pocs.length} 个 PoC)
+            </>
           ) : (
             <>
               <Play className="w-4 h-4 mr-2" />
@@ -134,16 +199,66 @@ export function PocVerificationPanel({ targetCode, diff }: PocVerificationPanelP
       </div>
 
       {/* 验证结果 */}
-      {results.length > 0 && (
+      {totalCount > 0 && (
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           className="space-y-4"
         >
-          <h3 className="text-sm font-medium text-slate-700">验证结果</h3>
+          <div className="flex items-center justify-between">
+            <h3 className="text-sm font-medium text-slate-700">验证结果</h3>
+            {hasFailed && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={retryVerification}
+                disabled={isRunning}
+                className="text-orange-600 hover:text-orange-700"
+              >
+                <RotateCcw className="w-3 h-3 mr-1" />
+                重试失败项
+              </Button>
+            )}
+          </div>
           {results.map((result) => (
             <PocResultCard key={result.pocId} result={result} />
           ))}
+        </motion.div>
+      )}
+
+      {/* 验证通过提示 */}
+      {allPassed && (
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="p-4 bg-emerald-50 border border-emerald-200 rounded-xl"
+        >
+          <div className="flex items-center gap-3">
+            <CheckCircle2 className="w-6 h-6 text-emerald-600" />
+            <div>
+              <p className="font-medium text-emerald-700">补丁验证通过</p>
+              <p className="text-sm text-emerald-600">所有 PoC 均未能触发漏洞，补丁有效。</p>
+            </div>
+          </div>
+        </motion.div>
+      )}
+
+      {/* 验证失败提示 */}
+      {hasFailed && !isRunning && (
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="p-4 bg-red-50 border border-red-200 rounded-xl"
+        >
+          <div className="flex items-center gap-3">
+            <XCircle className="w-6 h-6 text-red-600" />
+            <div>
+              <p className="font-medium text-red-700">补丁验证失败</p>
+              <p className="text-sm text-red-600">
+                {failedCount} 个 PoC 成功触发漏洞，建议修改补丁或 PoC 后重试。
+              </p>
+            </div>
+          </div>
         </motion.div>
       )}
     </div>

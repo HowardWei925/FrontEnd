@@ -1,11 +1,29 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'motion/react';
-import { ArrowLeft, Zap, ArrowRight, CheckCircle2, XCircle, Shield } from 'lucide-react';
+import { ArrowLeft, Zap, ArrowRight, CheckCircle2, XCircle, Shield, RotateCcw, Edit3 } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router';
 import { WorkflowProgress } from '../components/WorkflowProgress';
 import { Button } from '../components/ui/button';
 import type { PocInput as PocInputType, PocVerificationResult } from '../lib/agent-types';
 import { executeTool } from '../lib/agent-tools';
+
+// 模拟的目标代码（实际应该从补丁移植结果获取）
+const MOCK_TARGET_CODE = `#include <stdio.h>
+#include <string.h>
+
+void handle_data(char *user_input) {
+    char temp_buf[64];
+    // AI-migrated patch applied here
+    strncpy(temp_buf, user_input, sizeof(temp_buf) - 1);
+    temp_buf[sizeof(temp_buf) - 1] = '\\0';
+    log_message("Data: %s\\n", temp_buf);
+}
+
+int main(int argc, char **argv) {
+    if (argc < 2) return 1;
+    handle_data(argv[1]);
+    return 0;
+}`;
 
 export function WorkflowPage() {
   const navigate = useNavigate();
@@ -15,11 +33,13 @@ export function WorkflowPage() {
   const [pocInputs, setPocInputs] = useState<PocInputType[]>([]);
   const [pocResults, setPocResults] = useState<PocVerificationResult[]>([]);
   const [isVerifying, setIsVerifying] = useState(false);
+  const [targetCode, setTargetCode] = useState(MOCK_TARGET_CODE);
 
   useEffect(() => {
     window.scrollTo(0, 0);
   }, [location.pathname]);
 
+  // 读取 PoC 输入
   useEffect(() => {
     const stored = sessionStorage.getItem('poc_inputs');
     if (stored) {
@@ -29,6 +49,7 @@ export function WorkflowPage() {
     }
   }, []);
 
+  // 执行 PoC 验证（带目标代码）
   const runPocVerification = async () => {
     if (pocInputs.length === 0) return;
 
@@ -39,6 +60,7 @@ export function WorkflowPage() {
       const result = await executeTool('verifyPoc', {
         pocContent: poc.content,
         pocType: poc.type,
+        targetCode: targetCode,  // ✅ 传入目标代码
       });
       if (result.success) {
         results.push(result.data as PocVerificationResult);
@@ -47,9 +69,13 @@ export function WorkflowPage() {
     }
 
     setIsVerifying(false);
+
+    // 存储验证结果到 sessionStorage
+    sessionStorage.setItem('poc_results', JSON.stringify(results));
+    sessionStorage.setItem('target_code', targetCode);
   };
 
-  // Simulate workflow progression
+  // 模拟工作流进度
   useEffect(() => {
     const timer = setInterval(() => {
       setCurrentStep((prev) => {
@@ -57,6 +83,7 @@ export function WorkflowPage() {
           return prev + 1;
         }
         setIsLoading(false);
+        // 到达验证步骤时自动执行 PoC 验证
         if (pocInputs.length > 0) {
           runPocVerification();
         }
@@ -65,7 +92,7 @@ export function WorkflowPage() {
     }, 3000);
 
     return () => clearInterval(timer);
-  }, [pocInputs]);
+  }, [pocInputs, targetCode]);
 
   const getStepContent = () => {
     switch (currentStep) {
@@ -127,6 +154,10 @@ export function WorkflowPage() {
   };
 
   const content = getStepContent();
+
+  // 判断验证是否全部通过
+  const allPassed = pocResults.length > 0 && pocResults.every(r => r.status === 'passed');
+  const hasFailed = pocResults.some(r => r.status === 'failed');
 
   return (
     <div className="min-h-screen bg-white  relative overflow-hidden">
@@ -298,40 +329,193 @@ export function WorkflowPage() {
                   </span>
                 </div>
                 <p className="text-sm text-slate-600">{result.summary}</p>
+
+                {/* 显示失败步骤的详情 */}
+                {result.status === 'failed' && result.steps && (
+                  <div className="mt-3 p-3 bg-red-100 rounded-lg">
+                    <p className="text-xs font-medium text-red-700 mb-2">失败详情：</p>
+                    {result.steps.filter(s => s.status === 'failed').map(step => (
+                      <div key={step.id} className="text-xs text-red-600 mb-1">
+                        <p>• {step.name}: {step.stderr || step.error || '未知错误'}</p>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             ))}
           </motion.div>
         )}
 
-        {/* Success Message */}
+        {/* 完成后的操作 */}
         {currentStep === 4 && !isLoading && (
           <motion.div
-            initial={{ opacity: 0, y: 20, scale: 0.9 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.5 }}
-            className="mt-8 bg-white border border-green-400 rounded-2xl p-6 text-center"
+            className="mt-8 space-y-4"
           >
-            <motion.div
-              initial={{ scale: 0 }}
-              animate={{ scale: 1 }}
-              transition={{ delay: 0.7, type: 'spring', stiffness: 200 }}
-              className="inline-flex items-center justify-center w-16 h-16 bg-green-500/20 rounded-full mb-4"
-            >
-              <Zap className="w-8 h-8 text-green-600" />
-            </motion.div>
-            <h3 className="text-2xl font-bold text-green-600 mb-2">
-              补丁移植成功！
-            </h3>
-            <p className="text-slate-600 mb-6">
-              补丁迁移完成，请查看语义映射分析。
-            </p>
-            <Button
-              onClick={() => navigate('/semantic-mapping')}
-              className="w-full bg-cyan-600 hover:bg-cyan-500 text-slate-900"
-            >
-              查看语义映射分析
-              <ArrowRight className="w-4 h-4 ml-2" />
-            </Button>
+            {/* 验证全部通过 */}
+            {allPassed && (
+              <div className="bg-white border border-green-400 rounded-2xl p-6 text-center">
+                <motion.div
+                  initial={{ scale: 0 }}
+                  animate={{ scale: 1 }}
+                  transition={{ delay: 0.7, type: 'spring', stiffness: 200 }}
+                  className="inline-flex items-center justify-center w-16 h-16 bg-green-500/20 rounded-full mb-4"
+                >
+                  <CheckCircle2 className="w-8 h-8 text-green-600" />
+                </motion.div>
+                <h3 className="text-2xl font-bold text-green-600 mb-2">
+                  补丁验证通过！
+                </h3>
+                <p className="text-slate-600 mb-6">
+                  所有 PoC 验证均通过，补丁有效。
+                </p>
+                <div className="flex gap-3">
+                  <Button
+                    onClick={() => navigate('/semantic-mapping')}
+                    className="flex-1 bg-cyan-600 hover:bg-cyan-500 text-white"
+                  >
+                    查看语义映射分析
+                    <ArrowRight className="w-4 h-4 ml-2" />
+                  </Button>
+                  <Button
+                    onClick={() => navigate('/comparison')}
+                    variant="outline"
+                    className="flex-1"
+                  >
+                    查看代码对比
+                    <ArrowRight className="w-4 h-4 ml-2" />
+                  </Button>
+                </div>
+              </div>
+            )}
+
+            {/* 验证失败 - 提供迭代选项 */}
+            {hasFailed && (
+              <div className="bg-white border border-red-400 rounded-2xl p-6">
+                <div className="text-center mb-6">
+                  <motion.div
+                    initial={{ scale: 0 }}
+                    animate={{ scale: 1 }}
+                    transition={{ delay: 0.7, type: 'spring', stiffness: 200 }}
+                    className="inline-flex items-center justify-center w-16 h-16 bg-red-500/20 rounded-full mb-4"
+                  >
+                    <XCircle className="w-8 h-8 text-red-600" />
+                  </motion.div>
+                  <h3 className="text-2xl font-bold text-red-600 mb-2">
+                    补丁验证失败
+                  </h3>
+                  <p className="text-slate-600">
+                    PoC 验证未通过，你可以选择以下操作：
+                  </p>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {/* 修改补丁 */}
+                  <button
+                    onClick={() => {
+                      sessionStorage.setItem('agent_context', JSON.stringify({
+                        mode: 'adjust',
+                        diff: { before: [], after: [] },
+                        targetCode: targetCode,
+                        pocInputs: pocInputs,
+                        pocResults: pocResults,
+                      }));
+                      navigate('/agent');
+                    }}
+                    className="group bg-white border-2 border-orange-200 hover:border-orange-400 rounded-xl p-5 text-left transition-all hover:shadow-lg"
+                  >
+                    <div className="flex items-center gap-3 mb-3">
+                      <div className="size-10 rounded-lg bg-orange-100 group-hover:bg-orange-200 flex items-center justify-center transition-colors">
+                        <Edit3 className="size-5 text-orange-600" />
+                      </div>
+                      <div>
+                        <h3 className="font-semibold text-slate-900">修改/微调补丁</h3>
+                        <p className="text-xs text-slate-500">用 AI 调整补丁代码</p>
+                      </div>
+                    </div>
+                    <p className="text-sm text-slate-600">
+                      通过对话告诉 AI 你的修改需求，多轮迭代直到补丁有效。
+                    </p>
+                  </button>
+
+                  {/* 重写 PoC */}
+                  <button
+                    onClick={() => {
+                      // 清除当前 PoC，返回任务创建页重新输入
+                      sessionStorage.removeItem('poc_inputs');
+                      sessionStorage.removeItem('poc_results');
+                      navigate('/task-creation');
+                    }}
+                    className="group bg-white border-2 border-purple-200 hover:border-purple-400 rounded-xl p-5 text-left transition-all hover:shadow-lg"
+                  >
+                    <div className="flex items-center gap-3 mb-3">
+                      <div className="size-10 rounded-lg bg-purple-100 group-hover:bg-purple-200 flex items-center justify-center transition-colors">
+                        <RotateCcw className="size-5 text-purple-600" />
+                      </div>
+                      <div>
+                        <h3 className="font-semibold text-slate-900">重写 PoC</h3>
+                        <p className="text-xs text-slate-500">修改验证命令或代码</p>
+                      </div>
+                    </div>
+                    <p className="text-sm text-slate-600">
+                      返回任务配置页，重新编写 PoC 验证代码。
+                    </p>
+                  </button>
+                </div>
+
+                {/* 查看详细分析 */}
+                <div className="mt-4">
+                  <Button
+                    onClick={() => {
+                      sessionStorage.setItem('agent_context', JSON.stringify({
+                        mode: 'verify',
+                        diff: { before: [], after: [] },
+                        targetCode: targetCode,
+                        pocInputs: pocInputs,
+                        pocResults: pocResults,
+                      }));
+                      navigate('/agent');
+                    }}
+                    variant="outline"
+                    className="w-full"
+                  >
+                    查看详细分析
+                    <ArrowRight className="w-4 h-4 ml-2" />
+                  </Button>
+                </div>
+              </div>
+            )}
+
+            {/* 没有 PoC 输入的情况 */}
+            {pocInputs.length === 0 && (
+              <div className="bg-white border border-slate-200 rounded-2xl p-6 text-center">
+                <h3 className="text-xl font-bold text-slate-900 mb-2">
+                  补丁移植完成
+                </h3>
+                <p className="text-slate-600 mb-6">
+                  未配置 PoC 验证，你可以选择以下操作：
+                </p>
+                <div className="flex gap-3">
+                  <Button
+                    onClick={() => navigate('/semantic-mapping')}
+                    className="flex-1 bg-cyan-600 hover:bg-cyan-500 text-white"
+                  >
+                    查看语义映射分析
+                    <ArrowRight className="w-4 h-4 ml-2" />
+                  </Button>
+                  <Button
+                    onClick={() => navigate('/comparison')}
+                    variant="outline"
+                    className="flex-1"
+                  >
+                    查看代码对比
+                    <ArrowRight className="w-4 h-4 ml-2" />
+                  </Button>
+                </div>
+              </div>
+            )}
           </motion.div>
         )}
       </div>

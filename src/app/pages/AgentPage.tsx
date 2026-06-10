@@ -11,9 +11,8 @@ import { ChatPanel } from '../components/agent/ChatPanel';
 import { AnalysisPanel } from '../components/agent/AnalysisPanel';
 import { sendMessage, updateRuntimeConfig } from '../lib/llm-client';
 import { executeTool } from '../lib/agent-tools';
-import type { ChatMessage, ToolCall, ToolCallDelta, CWEResult, SecurityAuditResult, CommandResult, DiffAdjustment } from '../lib/agent-types';
+import type { ChatMessage, ToolCall, ToolCallDelta, CWEResult, SecurityAuditResult, CommandResult, DiffAdjustment, PocInput as PocInputType, PocVerificationResult } from '../lib/agent-types';
 import { PocVerificationPanel } from '../components/poc';
-import type { PocInput as PocInputType } from '../lib/agent-types';
 
 // --- State Management ---
 
@@ -103,31 +102,38 @@ export function AgentPage() {
   const stateRef = useRef(state);
   stateRef.current = state;
   const [pocInputs, setPocInputs] = useState<PocInputType[]>([]);
+  const [pocResults, setPocResults] = useState<PocVerificationResult[]>([]);
+  const [targetCode, setTargetCode] = useState<string>('');
 
   // Read context from sessionStorage on mount
   useEffect(() => {
     const ctxStr = sessionStorage.getItem('agent_context');
-    if (!ctxStr) return;
-    sessionStorage.removeItem('agent_context');
-    try {
-      const ctx = JSON.parse(ctxStr);
-      if (ctx.mode === 'verify' && ctx.diff) {
-        const diffText = ctx.diff.before.map((l: string) => `- ${l}`).join('\n')
-          + '\n'
-          + ctx.diff.after.map((l: string) => `+ ${l}`).join('\n');
-        const meta = ctx.metadata ? `\n漏洞类型：${ctx.metadata.vulnType || '未知'}\n修复策略：${ctx.metadata.fixStrategy || '未知'}` : '';
-        setTimeout(() => {
-          handleSendDirect(`请帮我验证以下补丁的有效性。我会提供测试命令来验证漏洞是否被修复。\n\n补丁 diff：\n\`\`\`\n${diffText}\n\`\`\`${meta}\n\n请先分析补丁的修复逻辑，然后等待我提供测试命令。`);
-        }, 500);
-      } else if (ctx.mode === 'adjust' && ctx.diff) {
-        const diffText = ctx.diff.before.map((l: string) => `- ${l}`).join('\n')
-          + '\n'
-          + ctx.diff.after.map((l: string) => `+ ${l}`).join('\n');
-        setTimeout(() => {
-          handleSendDirect(`请帮我微调以下补丁 diff。我会告诉你需要哪些修改。\n\n当前 diff：\n\`\`\`\n${diffText}\n\`\`\`\n\n请分析当前补丁，等待我的修改需求。`);
-        }, 500);
-      }
-    } catch { /* ignore parse errors */ }
+    if (ctxStr) {
+      sessionStorage.removeItem('agent_context');
+      try {
+        const ctx = JSON.parse(ctxStr);
+        if (ctx.mode === 'verify' && ctx.diff) {
+          const diffText = ctx.diff.before.map((l: string) => `- ${l}`).join('\n')
+            + '\n'
+            + ctx.diff.after.map((l: string) => `+ ${l}`).join('\n');
+          const meta = ctx.metadata ? `\n漏洞类型：${ctx.metadata.vulnType || '未知'}\n修复策略：${ctx.metadata.fixStrategy || '未知'}` : '';
+          setTimeout(() => {
+            handleSendDirect(`请帮我验证以下补丁的有效性。我会提供测试命令来验证漏洞是否被修复。\n\n补丁 diff：\n\`\`\`\n${diffText}\n\`\`\`${meta}\n\n请先分析补丁的修复逻辑，然后等待我提供测试命令。`);
+          }, 500);
+        } else if (ctx.mode === 'adjust' && ctx.diff) {
+          const diffText = ctx.diff.before.map((l: string) => `- ${l}`).join('\n')
+            + '\n'
+            + ctx.diff.after.map((l: string) => `+ ${l}`).join('\n');
+          setTimeout(() => {
+            handleSendDirect(`请帮我微调以下补丁 diff。我会告诉你需要哪些修改。\n\n当前 diff：\n\`\`\`\n${diffText}\n\`\`\`\n\n请分析当前补丁，等待我的修改需求。`);
+          }, 500);
+        }
+        // 读取额外的上下文数据
+        if (ctx.targetCode) setTargetCode(ctx.targetCode);
+        if (ctx.pocInputs) setPocInputs(ctx.pocInputs);
+        if (ctx.pocResults) setPocResults(ctx.pocResults);
+      } catch { /* ignore parse errors */ }
+    }
 
     // 读取 PoC 输入
     const pocStr = sessionStorage.getItem('poc_inputs');
@@ -360,7 +366,14 @@ export function AgentPage() {
 
                 {pocInputs.length > 0 && (
                   <div className="mt-4 pt-4 border-t border-slate-200">
-                    <PocVerificationPanel />
+                    <PocVerificationPanel
+                      targetCode={targetCode}
+                      initialPocs={pocInputs}
+                      initialResults={pocResults}
+                      onVerificationComplete={(results) => {
+                        setPocResults(results);
+                      }}
+                    />
                   </div>
                 )}
               </div>

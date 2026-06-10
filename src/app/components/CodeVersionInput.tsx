@@ -48,28 +48,25 @@ export function CodeVersionInput({ title, accentColor, onInputChange }: CodeVers
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4 }}
-      className={`relative bg-white border ${styles.border} rounded-xl ${styles.glow} shadow-sm transition-all duration-300 ${isExpanded ? 'p-6' : 'p-3'}`}
+      className={`relative bg-white border ${styles.border} rounded-xl ${styles.glow} shadow-sm overflow-hidden`}
+      style={{ height: isExpanded ? 'auto' : 48 }}
     >
-      {/* Header */}
+      {/* Header - 始终可见 */}
       <div
-        className={`flex items-center justify-between ${isExpanded ? 'mb-6' : 'mb-0'} cursor-pointer`}
+        className="flex items-center justify-between p-4 cursor-pointer"
         onClick={() => setIsExpanded(!isExpanded)}
       >
         <div className="flex items-center gap-3">
           <div className={`w-2 h-2 rounded-full ${styles.icon} animate-pulse`} />
-          <h3 className={`text-lg font-semibold ${styles.text}`}>{title}</h3>
+          <h3 className={`text-base font-semibold ${styles.text}`}>{title}</h3>
         </div>
         <ChevronDown
-          className={`w-5 h-5 text-slate-600 transition-transform duration-300 ${isExpanded ? '' : 'rotate-180'}`}
+          className={`w-4 h-4 text-slate-600 transition-transform duration-300 ${isExpanded ? '' : 'rotate-180'}`}
         />
       </div>
 
-      {isExpanded && (
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ duration: 0.3, delay: 0.1 }}
-      >
+      {/* 内容区域 */}
+      <div className={`px-4 pb-4 ${isExpanded ? 'block' : 'hidden'}`}>
         {/* Input Type Selector */}
         <div className="flex gap-2 mb-4">
           <Button
@@ -168,8 +165,7 @@ export function CodeVersionInput({ title, accentColor, onInputChange }: CodeVers
             </p>
           </motion.div>
         )}
-      </motion.div>
-      )}
+      </div>
     </motion.div>
   );
 }

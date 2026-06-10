@@ -96,3 +96,35 @@ export interface PatchContext {
     confidence?: number;
   };
 }
+
+export type PocType = 'code' | 'command';
+
+export interface PocInput {
+  id: string;
+  type: PocType;
+  content: string;
+  language?: string;
+  description?: string;
+}
+
+export type VerificationStatus = 'pending' | 'running' | 'passed' | 'failed' | 'error';
+
+export interface PocVerificationResult {
+  pocId: string;
+  status: VerificationStatus;
+  steps: VerificationStep[];
+  summary: string;
+  timestamp: number;
+}
+
+export interface VerificationStep {
+  id: string;
+  name: string;
+  status: VerificationStatus;
+  command?: string;
+  stdout?: string;
+  stderr?: string;
+  exitCode?: number;
+  duration?: number;
+  error?: string;
+}

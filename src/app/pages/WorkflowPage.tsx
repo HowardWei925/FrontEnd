@@ -1,19 +1,53 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'motion/react';
-import { ArrowLeft, Zap, ArrowRight } from 'lucide-react';
+import { ArrowLeft, Zap, ArrowRight, CheckCircle2, XCircle, Shield } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router';
 import { WorkflowProgress } from '../components/WorkflowProgress';
 import { Button } from '../components/ui/button';
+import type { PocInput as PocInputType, PocVerificationResult } from '../lib/agent-types';
+import { executeTool } from '../lib/agent-tools';
 
 export function WorkflowPage() {
   const navigate = useNavigate();
   const location = useLocation();
   const [currentStep, setCurrentStep] = useState(1);
   const [isLoading, setIsLoading] = useState(true);
+  const [pocInputs, setPocInputs] = useState<PocInputType[]>([]);
+  const [pocResults, setPocResults] = useState<PocVerificationResult[]>([]);
+  const [isVerifying, setIsVerifying] = useState(false);
 
   useEffect(() => {
     window.scrollTo(0, 0);
   }, [location.pathname]);
+
+  useEffect(() => {
+    const stored = sessionStorage.getItem('poc_inputs');
+    if (stored) {
+      try {
+        setPocInputs(JSON.parse(stored));
+      } catch { /* ignore */ }
+    }
+  }, []);
+
+  const runPocVerification = async () => {
+    if (pocInputs.length === 0) return;
+
+    setIsVerifying(true);
+    const results: PocVerificationResult[] = [];
+
+    for (const poc of pocInputs) {
+      const result = await executeTool('verifyPoc', {
+        pocContent: poc.content,
+        pocType: poc.type,
+      });
+      if (result.success) {
+        results.push(result.data as PocVerificationResult);
+      }
+      setPocResults([...results]);
+    }
+
+    setIsVerifying(false);
+  };
 
   // Simulate workflow progression
   useEffect(() => {
@@ -23,12 +57,15 @@ export function WorkflowPage() {
           return prev + 1;
         }
         setIsLoading(false);
+        if (pocInputs.length > 0) {
+          runPocVerification();
+        }
         return prev;
       });
     }, 3000);
 
     return () => clearInterval(timer);
-  }, []);
+  }, [pocInputs]);
 
   const getStepContent = () => {
     switch (currentStep) {
@@ -68,13 +105,17 @@ export function WorkflowPage() {
       case 4:
         return {
           title: '验证 (Verification)',
-          description: '运行综合测试以验证补丁有效性...',
-          details: [
-            '编译修改后的目标代码',
-            '执行概念验证 (PoC) 漏洞利用',
-            '运行单元测试集',
-            '验证安全属性',
-          ],
+          description: pocInputs.length > 0
+            ? `正在执行 ${pocInputs.length} 个 PoC 验证...`
+            : '运行综合测试以验证补丁有效性...',
+          details: pocInputs.length > 0
+            ? pocInputs.map((p, i) => `PoC #${i + 1}: ${p.description || p.content.substring(0, 50)}...`)
+            : [
+                '编译修改后的目标代码',
+                '执行概念验证 (PoC) 漏洞利用',
+                '运行单元测试集',
+                '验证安全属性',
+              ],
         };
       default:
         return {
@@ -222,6 +263,45 @@ export function WorkflowPage() {
             </div>
           </div>
         </motion.div>
+
+        {/* PoC 验证结果 */}
+        {currentStep === 4 && pocResults.length > 0 && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.3 }}
+            className="mt-8 space-y-4"
+          >
+            <div className="flex items-center gap-2 mb-4">
+              <Shield className="w-5 h-5 text-cyan-600" />
+              <h3 className="text-lg font-semibold text-slate-900">PoC 验证结果</h3>
+            </div>
+            {pocResults.map((result) => (
+              <div
+                key={result.pocId}
+                className={`p-4 rounded-xl border-2 ${
+                  result.status === 'passed'
+                    ? 'bg-emerald-50 border-emerald-200'
+                    : 'bg-red-50 border-red-200'
+                }`}
+              >
+                <div className="flex items-center gap-3 mb-2">
+                  {result.status === 'passed' ? (
+                    <CheckCircle2 className="w-5 h-5 text-emerald-600" />
+                  ) : (
+                    <XCircle className="w-5 h-5 text-red-600" />
+                  )}
+                  <span className={`font-medium ${
+                    result.status === 'passed' ? 'text-emerald-700' : 'text-red-700'
+                  }`}>
+                    {result.status === 'passed' ? '补丁有效' : '补丁无效'}
+                  </span>
+                </div>
+                <p className="text-sm text-slate-600">{result.summary}</p>
+              </div>
+            ))}
+          </motion.div>
+        )}
 
         {/* Success Message */}
         {currentStep === 4 && !isLoading && (

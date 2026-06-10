@@ -12,6 +12,8 @@ import { AnalysisPanel } from '../components/agent/AnalysisPanel';
 import { sendMessage, updateRuntimeConfig } from '../lib/llm-client';
 import { executeTool } from '../lib/agent-tools';
 import type { ChatMessage, ToolCall, ToolCallDelta, CWEResult, SecurityAuditResult, CommandResult, DiffAdjustment } from '../lib/agent-types';
+import { PocVerificationPanel } from '../components/poc';
+import type { PocInput as PocInputType } from '../lib/agent-types';
 
 // --- State Management ---
 
@@ -100,6 +102,7 @@ export function AgentPage() {
   const abortRef = useRef(false);
   const stateRef = useRef(state);
   stateRef.current = state;
+  const [pocInputs, setPocInputs] = useState<PocInputType[]>([]);
 
   // Read context from sessionStorage on mount
   useEffect(() => {
@@ -125,6 +128,14 @@ export function AgentPage() {
         }, 500);
       }
     } catch { /* ignore parse errors */ }
+
+    // 读取 PoC 输入
+    const pocStr = sessionStorage.getItem('poc_inputs');
+    if (pocStr) {
+      try {
+        setPocInputs(JSON.parse(pocStr));
+      } catch { /* ignore */ }
+    }
   }, []);
 
   // Internal send without user message (for auto-sends)
@@ -338,13 +349,21 @@ export function AgentPage() {
             </ResizablePanel>
             <ResizableHandle withHandle />
             <ResizablePanel defaultSize={42} minSize={25}>
-              <AnalysisPanel
-                cweResults={state.cweResults}
-                auditResults={state.auditResults}
-                commandResults={state.commandResults}
-                diffAdjustments={state.diffAdjustments}
-                toolCalls={state.toolCalls}
-              />
+              <div className="h-full overflow-auto p-4 space-y-4">
+                <AnalysisPanel
+                  cweResults={state.cweResults}
+                  auditResults={state.auditResults}
+                  commandResults={state.commandResults}
+                  diffAdjustments={state.diffAdjustments}
+                  toolCalls={state.toolCalls}
+                />
+
+                {pocInputs.length > 0 && (
+                  <div className="mt-4 pt-4 border-t border-slate-200">
+                    <PocVerificationPanel />
+                  </div>
+                )}
+              </div>
             </ResizablePanel>
           </ResizablePanelGroup>
         </motion.div>

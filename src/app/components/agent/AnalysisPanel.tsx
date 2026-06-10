@@ -1,6 +1,6 @@
-import { Shield, Search, Terminal, Play, GitCompare } from 'lucide-react';
+import { Shield, Search, Terminal, Play, GitCompare, CheckCircle2, XCircle } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
-import type { CWEResult, SecurityAuditResult, ToolCall, CommandResult, DiffAdjustment } from '../../lib/agent-types';
+import type { CWEResult, SecurityAuditResult, ToolCall, CommandResult, DiffAdjustment, PocVerificationResult } from '../../lib/agent-types';
 import { CWEResultCard } from './CWEResultCard';
 import { SecurityAuditCard } from './SecurityAuditCard';
 import { CommandResultCard } from './CommandResultCard';
@@ -13,6 +13,7 @@ interface AnalysisPanelProps {
   commandResults: CommandResult[];
   diffAdjustments: DiffAdjustment[];
   toolCalls: ToolCall[];
+  pocResults?: PocVerificationResult[];
 }
 
 function EmptyState({ icon: Icon, text }: { icon: React.ElementType; text: string }) {
@@ -26,7 +27,7 @@ function EmptyState({ icon: Icon, text }: { icon: React.ElementType; text: strin
   );
 }
 
-export function AnalysisPanel({ cweResults, auditResults, commandResults, diffAdjustments, toolCalls }: AnalysisPanelProps) {
+export function AnalysisPanel({ cweResults, auditResults, commandResults, diffAdjustments, toolCalls, pocResults = [] }: AnalysisPanelProps) {
   return (
     <div className="flex flex-col h-full overflow-hidden">
       {/* Header */}
@@ -151,6 +152,35 @@ export function AnalysisPanel({ cweResults, auditResults, commandResults, diffAd
           </TabsContent>
         </div>
       </Tabs>
+
+      {/* PoC 验证结果 */}
+      {pocResults.length > 0 && (
+        <div>
+          <div className="flex items-center gap-2 mb-3">
+            <Shield className="w-4 h-4 text-cyan-600" />
+            <h3 className="text-sm font-semibold text-slate-700">PoC 验证结果</h3>
+          </div>
+          <div className="space-y-2">
+            {pocResults.map((result) => (
+              <div key={result.pocId} className="p-3 bg-slate-50 rounded-lg border border-slate-100">
+                <div className="flex items-center gap-2 mb-1">
+                  {result.status === 'passed' ? (
+                    <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                  ) : (
+                    <XCircle className="w-4 h-4 text-red-600" />
+                  )}
+                  <p className={`text-sm font-medium ${
+                    result.status === 'passed' ? 'text-emerald-600' : 'text-red-600'
+                  }`}>
+                    {result.status === 'passed' ? '✅ 补丁有效' : '❌ 补丁无效'}
+                  </p>
+                </div>
+                <p className="text-xs text-slate-500">{result.summary}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

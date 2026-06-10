@@ -1,4 +1,4 @@
-import type { OpenAIToolDefinition, ToolResult } from './agent-types';
+import type { OpenAIToolDefinition, ToolResult, VerificationStep } from './agent-types';
 
 export const toolDefinitions: OpenAIToolDefinition[] = [
   {
@@ -73,6 +73,22 @@ export const toolDefinitions: OpenAIToolDefinition[] = [
           userRequest: { type: 'string', description: '用户的修改需求描述' },
         },
         required: ['originalDiff', 'userRequest'],
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'verifyPoc',
+      description: '验证 PoC（概念验证）是否能触发漏洞。用于确认补丁的有效性。返回编译、执行、安全检查等步骤的结果。',
+      parameters: {
+        type: 'object',
+        properties: {
+          pocContent: { type: 'string', description: 'PoC 代码内容或验证命令' },
+          pocType: { type: 'string', description: 'PoC 类型：code（代码）或 command（命令）' },
+          targetCode: { type: 'string', description: '目标代码（打了补丁后的版本）' },
+        },
+        required: ['pocContent'],
       },
     },
   },
@@ -245,12 +261,74 @@ function mockGetCWEInfo(args: Record<string, unknown>): ToolResult {
   };
 }
 
+function mockVerifyPoc(args: Record<string, unknown>): ToolResult {
+  const pocContent = (args.pocContent as string) || '';
+  const pocType = (args.pocType as string) || 'command';
+
+  const steps: VerificationStep[] = [];
+  const lower = pocContent.toLowerCase();
+
+  // Step 1: 编译（如果是代码）
+  if (pocType === 'code' || lower.includes('gcc') || lower.includes('compile')) {
+    steps.push({
+      id: 'step-1',
+      name: '编译目标代码',
+      status: 'passed',
+      command: 'gcc -o target target.c -fstack-protector-all',
+      stdout: '',
+      stderr: '',
+      exitCode: 0,
+      duration: 1200,
+    });
+  }
+
+  // Step 2: 执行 PoC
+  steps.push({
+    id: `step-${steps.length + 1}`,
+    name: '执行 PoC 验证',
+    status: 'passed',
+    command: pocType === 'command' ? pocContent : './poc_exploit',
+    stdout: 'PoC 执行完成\n检测到边界检查生效，输入被安全截断\n程序正常退出，未触发崩溃',
+    stderr: '',
+    exitCode: 0,
+    duration: 150,
+  });
+
+  // Step 3: 检查安全性
+  steps.push({
+    id: `step-${steps.length + 1}`,
+    name: '安全检查',
+    status: 'passed',
+    command: 'echo "Checking for vulnerabilities..."',
+    stdout: '未检测到内存损坏\n栈保护 canary 完整\nASLR 正常工作',
+    stderr: '',
+    exitCode: 0,
+    duration: 80,
+  });
+
+  const allPassed = steps.every(s => s.status === 'passed');
+
+  return {
+    success: true,
+    data: {
+      pocId: `poc-${Date.now()}`,
+      status: allPassed ? 'passed' : 'failed',
+      steps,
+      summary: allPassed
+        ? '✅ 补丁验证通过：PoC 未能触发漏洞，补丁有效防御了攻击'
+        : '❌ 补丁验证失败：PoC 成功触发漏洞，补丁可能无效',
+      timestamp: Date.now(),
+    },
+  };
+}
+
 const mockExecutors: Record<string, (args: Record<string, unknown>) => ToolResult> = {
   analyzeAST: mockAnalyzeAST,
   getPDG: mockGetPDG,
   getCWEInfo: mockGetCWEInfo,
   runCommand: mockRunCommand,
   adjustDiff: mockAdjustDiff,
+  verifyPoc: mockVerifyPoc,
 };
 
 function mockRunCommand(args: Record<string, unknown>): ToolResult {

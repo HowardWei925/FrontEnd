@@ -66,14 +66,12 @@ export function CodeVersionInput({ title, accentColor, onInputChange }: CodeVers
         </button>
       </div>
 
+      {isExpanded && (
       <motion.div
-        initial={false}
-        animate={{
-          maxHeight: isExpanded ? 500 : 0,
-          opacity: isExpanded ? 1 : 0,
-        }}
-        transition={{ duration: 0.3, ease: 'easeInOut' }}
-        style={{ overflow: 'hidden' }}
+        initial={{ opacity: 0, height: 0 }}
+        animate={{ opacity: 1, height: 'auto' }}
+        exit={{ opacity: 0, height: 0 }}
+        transition={{ duration: 0.3 }}
       >
         {/* Input Type Selector */}
         <div className="flex gap-2 mb-4">
@@ -174,6 +172,7 @@ export function CodeVersionInput({ title, accentColor, onInputChange }: CodeVers
           </motion.div>
         )}
       </motion.div>
+      )}
     </motion.div>
   );
 }

@@ -1,16 +1,53 @@
 FROM ubuntu:22.04
 
-# 安装基础工具和编译器
+# 设置非交互模式
+ENV DEBIAN_FRONTEND=noninteractive
+
+# 安装基础工具、编译器和安全工具
 RUN apt-get update && apt-get install -y \
+    # 编译器
     gcc \
     g++ \
     make \
+    cmake \
+    # Python
     python3 \
     python3-pip \
+    python3-dev \
+    # 调试和分析工具
     gdb \
     strace \
+    ltrace \
     file \
+    # 网络工具
+    netcat-openbsd \
+    nmap \
+    curl \
+    wget \
+    # 文本处理
+    vim \
+    sed \
+    awk \
+    jq \
+    # 其他工具
+    git \
+    unzip \
     && rm -rf /var/lib/apt/lists/*
+
+# 安装常用 Python 安全库
+RUN pip3 install --no-cache-dir \
+    requests \
+    pwntools \
+    capstone \
+    keystone-engine \
+    unicorn \
+    ropper \
+    z3-solver \
+    angr \
+    scapy \
+    paramiko \
+    beautifulsoup4 \
+    lxml
 
 # 创建非 root 用户
 RUN useradd -m -s /bin/bash sandbox

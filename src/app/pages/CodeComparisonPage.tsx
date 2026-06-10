@@ -272,10 +272,12 @@ export function CodeComparisonPage() {
             {/* Verify Card */}
             <button
               onClick={() => {
+                const pocInputs = JSON.parse(sessionStorage.getItem('poc_inputs') || '[]');
                 sessionStorage.setItem('agent_context', JSON.stringify({
                   mode: 'verify',
                   diff: { before: patchedCodeText, after: targetText },
                   metadata: { vulnType: '缓冲区溢出 (CWE-120)', fixStrategy: '边界检查', confidence: 97.8 },
+                  pocInputs,
                 }));
                 navigate('/agent');
               }}

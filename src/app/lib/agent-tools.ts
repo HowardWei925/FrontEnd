@@ -1,5 +1,7 @@
 import type { OpenAIToolDefinition, ToolResult, VerificationStep } from './agent-types';
 
+const POC_API_URL = 'http://localhost:8000/api/poc/verify';
+
 export const toolDefinitions: OpenAIToolDefinition[] = [
   {
     type: 'function',
@@ -331,6 +333,27 @@ const mockExecutors: Record<string, (args: Record<string, unknown>) => ToolResul
   verifyPoc: mockVerifyPoc,
 };
 
+async function verifyPocApi(args: Record<string, unknown>): Promise<ToolResult> {
+  const response = await fetch(POC_API_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      pocContent: args.pocContent,
+      pocType: args.pocType || 'command',
+      targetCode: args.targetCode,
+      language: args.language || 'c',
+    }),
+  });
+
+  if (!response.ok) {
+    const errText = await response.text();
+    throw new Error(`API 错误 (${response.status}): ${errText}`);
+  }
+
+  const data = await response.json();
+  return { success: true, data };
+}
+
 function mockRunCommand(args: Record<string, unknown>): ToolResult {
   const command = (args.command as string) || '';
   const cmd = command.toLowerCase().trim();
@@ -447,6 +470,16 @@ export async function executeTool(
   name: string,
   args: Record<string, unknown>,
 ): Promise<ToolResult> {
+  // verifyPoc 优先使用真实 API
+  if (name === 'verifyPoc') {
+    try {
+      return await verifyPocApi(args);
+    } catch (e) {
+      console.warn('[PoC] API 不可用，回退到 mock:', e);
+      return mockVerifyPoc(args);
+    }
+  }
+
   await delay(300 + Math.random() * 500);
   const executor = mockExecutors[name];
   if (!executor) {

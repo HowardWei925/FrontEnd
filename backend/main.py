@@ -58,10 +58,11 @@ async def startup_event():
     global executor
     try:
         executor = SandboxExecutor()
-        print("✅ Sandbox executor initialized")
+        print("[OK] Sandbox executor initialized")
     except Exception as e:
-        print(f"⚠️ Failed to initialize sandbox: {e}")
+        print(f"[WARN] Failed to initialize sandbox: {e}")
         print("   PoC verification will not be available")
+        print("   Please make sure Docker Desktop is running")
 
 
 # ============ API 路由 ============

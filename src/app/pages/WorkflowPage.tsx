@@ -109,6 +109,17 @@ export function WorkflowPage() {
     }
   }, [isDone]);
 
+  // PoC 验证通过后自动跳转
+  useEffect(() => {
+    const allPassed = pocResults.length > 0 && pocResults.every(r => r.status === 'passed');
+    if (allPassed) {
+      const timer = setTimeout(() => {
+        navigate('/semantic-mapping');
+      }, 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [pocResults, navigate]);
+
   const getStepContent = () => {
     switch (currentStep) {
       case 1:

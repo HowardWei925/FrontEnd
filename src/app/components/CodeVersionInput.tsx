@@ -48,30 +48,27 @@ export function CodeVersionInput({ title, accentColor, onInputChange }: CodeVers
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4 }}
-      className={`relative bg-white border ${styles.border} rounded-xl p-6 ${styles.glow} shadow-sm`}
+      className={`relative bg-white border ${styles.border} rounded-xl ${styles.glow} shadow-sm transition-all duration-300 ${isExpanded ? 'p-6' : 'p-3'}`}
     >
       {/* Header */}
-      <div className="flex items-center justify-between mb-6">
+      <div
+        className={`flex items-center justify-between ${isExpanded ? 'mb-6' : 'mb-0'} cursor-pointer`}
+        onClick={() => setIsExpanded(!isExpanded)}
+      >
         <div className="flex items-center gap-3">
           <div className={`w-2 h-2 rounded-full ${styles.icon} animate-pulse`} />
           <h3 className={`text-lg font-semibold ${styles.text}`}>{title}</h3>
         </div>
-        <button
-          onClick={() => setIsExpanded(!isExpanded)}
-          className="p-1 hover:bg-white rounded transition-colors"
-        >
-          <ChevronDown
-            className={`w-5 h-5 text-slate-600 transition-transform ${isExpanded ? '' : 'rotate-180'}`}
-          />
-        </button>
+        <ChevronDown
+          className={`w-5 h-5 text-slate-600 transition-transform duration-300 ${isExpanded ? '' : 'rotate-180'}`}
+        />
       </div>
 
       {isExpanded && (
       <motion.div
-        initial={{ opacity: 0, height: 0 }}
-        animate={{ opacity: 1, height: 'auto' }}
-        exit={{ opacity: 0, height: 0 }}
-        transition={{ duration: 0.3 }}
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.3, delay: 0.1 }}
       >
         {/* Input Type Selector */}
         <div className="flex gap-2 mb-4">

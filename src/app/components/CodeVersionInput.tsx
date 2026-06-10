@@ -68,9 +68,12 @@ export function CodeVersionInput({ title, accentColor, onInputChange }: CodeVers
 
       <motion.div
         initial={false}
-        animate={{ height: isExpanded ? 'auto' : 0, opacity: isExpanded ? 1 : 0 }}
-        transition={{ duration: 0.3 }}
-        className="overflow-hidden"
+        animate={{
+          maxHeight: isExpanded ? 500 : 0,
+          opacity: isExpanded ? 1 : 0,
+        }}
+        transition={{ duration: 0.3, ease: 'easeInOut' }}
+        style={{ overflow: 'hidden' }}
       >
         {/* Input Type Selector */}
         <div className="flex gap-2 mb-4">

@@ -1,5 +1,6 @@
 import { Navigate, Outlet, useLocation } from "react-router";
 import { isAuthenticated } from "../lib/auth";
+import { FloatingAgentButton } from "./agent/FloatingAgentButton";
 
 export function ProtectedRoute() {
   const location = useLocation();
@@ -8,5 +9,10 @@ export function ProtectedRoute() {
     return <Navigate to="/login" replace state={{ from: location.pathname }} />;
   }
 
-  return <Outlet />;
+  return (
+    <>
+      <Outlet />
+      <FloatingAgentButton />
+    </>
+  );
 }

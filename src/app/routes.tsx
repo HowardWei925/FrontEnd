@@ -4,6 +4,7 @@ import { WorkflowPage } from "./pages/WorkflowPage";
 import { CodeComparisonPage } from "./pages/CodeComparisonPage";
 import { SemanticMappingPage } from "./pages/SemanticMappingPage";
 import { HistoryPage } from "./pages/HistoryPage";
+import { AgentPage } from "./pages/AgentPage";
 import { LoginPage } from "./pages/LoginPage";
 import { ProtectedRoute } from "./components/ProtectedRoute";
 import { LandingPage } from "./pages/LandingPage";
@@ -39,6 +40,10 @@ export const router = createBrowserRouter([
       {
         path: "/history",
         Component: HistoryPage,
+      },
+      {
+        path: "/agent",
+        Component: AgentPage,
       },
     ],
   },

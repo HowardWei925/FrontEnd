@@ -1,15 +1,21 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router';
 import { motion } from 'motion/react';
-import { ArrowLeftRight, ArrowRight, Play, Shield, Sparkles } from 'lucide-react';
+import { ArrowLeftRight, ArrowRight, Bot, Play, Shield, Sparkles, Terminal } from 'lucide-react';
 import { CodeVersionInput } from '../components/CodeVersionInput';
+import { PocInput } from '../components/poc';
 import { Button } from '../components/ui/button';
+import type { PocInput as PocInputType } from '../lib/agent-types';
 
 export function TaskCreationPage() {
   const navigate = useNavigate();
   const [isHovered, setIsHovered] = useState(false);
+  const [pocs, setPocs] = useState<PocInputType[]>([]);
 
   const handleStartMigration = () => {
+    if (pocs.length > 0) {
+      sessionStorage.setItem('poc_inputs', JSON.stringify(pocs));
+    }
     navigate('/workflow');
   };
 
@@ -57,14 +63,24 @@ export function TaskCreationPage() {
           animate={{ opacity: 1, y: 0 }}
           className="text-center mb-16 relative pt-14 sm:pt-0"
         >
-          <Button
-            onClick={() => navigate('/history')}
-            variant="outline"
-            className="absolute right-0 top-0 border-slate-300 bg-white/90 text-slate-700 hover:border-cyan-500 hover:text-cyan-700"
-          >
-            <ArrowLeftRight className="w-4 h-4 mr-1" />
-            历史记录
-          </Button>
+          <div className="absolute right-0 top-0 flex gap-2">
+            <Button
+              onClick={() => navigate('/agent')}
+              variant="outline"
+              className="border-slate-300 bg-white/90 text-slate-700 hover:border-cyan-500 hover:text-cyan-700"
+            >
+              <Bot className="w-4 h-4 mr-1" />
+              AI 分析
+            </Button>
+            <Button
+              onClick={() => navigate('/history')}
+              variant="outline"
+              className="border-slate-300 bg-white/90 text-slate-700 hover:border-cyan-500 hover:text-cyan-700"
+            >
+              <ArrowLeftRight className="w-4 h-4 mr-1" />
+              历史记录
+            </Button>
+          </div>
 
           <div className="flex items-center justify-center gap-3 mb-4">
             <Shield className="w-10 h-10 text-cyan-600" />
@@ -122,6 +138,28 @@ export function TaskCreationPage() {
           </div>
         </div>
 
+        {/* PoC 配置区域 */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.3 }}
+          className="mb-12"
+        >
+          <div className="mb-6">
+            <h2 className="text-2xl font-semibold text-slate-900 mb-2 flex items-center gap-2">
+              <Terminal className="w-6 h-6 text-cyan-600" />
+              PoC 验证配置（可选）
+            </h2>
+            <p className="text-slate-600">
+              提供 PoC 代码或验证命令，系统将在补丁移植后自动验证补丁有效性
+            </p>
+          </div>
+
+          <div className="p-6 bg-slate-50 rounded-xl border border-slate-200">
+            <PocInput pocs={pocs} onChange={setPocs} maxPocs={3} />
+          </div>
+        </motion.div>
+
         {/* Start Migration Button */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -169,7 +207,7 @@ export function TaskCreationPage() {
             { label: 'Patch Locate', value: 'AST Analysis' },
             { label: 'Semantic Map', value: 'AI-Driven' },
             { label: 'Transfer', value: 'Automated' },
-            { label: 'Verification', value: 'Multi-Test' },
+            { label: 'Verification', value: pocs.length > 0 ? `${pocs.length} PoC` : 'Multi-Test' },
           ].map((item, index) => (
             <motion.div
               key={item.label}

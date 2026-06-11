@@ -151,11 +151,10 @@ export function VulnTypeAnalysisView({ mappingData }: VulnTypeAnalysisViewProps)
           <FileSearch className="w-5 h-5 text-cyan-600" />
           <h3 className="font-semibold text-slate-900">漏洞分析摘要（示例）</h3>
         </div>
-        
         <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-xs text-amber-800">
            当前区域尚未接入基于 mappingData 或后端分析结果的动态摘要，以下内容仅为界面示例，不代表当前分析对象的真实漏洞信息。
          </div>
-        
+         
         <div className="grid grid-cols-3 gap-4">
           <div className="rounded-lg bg-slate-50 border border-slate-200 p-4">
             <p className="text-xs text-gray-500 mb-1">漏洞类型</p>

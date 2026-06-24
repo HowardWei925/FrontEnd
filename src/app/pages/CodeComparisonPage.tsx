@@ -1,6 +1,6 @@
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { motion } from 'motion/react';
-import { ArrowLeft, GitCompare, ArrowDown, Info, Sparkles, ArrowRight, Network, Play, Edit3, Save, X } from 'lucide-react';
+import { ArrowLeft, GitCompare, ArrowDown, Info, Sparkles, ArrowRight, Network, Bot, Play } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router';
 import { Button } from '../components/ui/button';
 
@@ -46,7 +46,7 @@ const targetText = [
   '}',
 ];
 
-// ==================== Diff 行接口 ====================
+// ==================== GitHub 风格 Diff 组件 ====================
 interface DiffLine {
   type: 'add' | 'remove' | 'normal';
   content: string;
@@ -54,13 +54,13 @@ interface DiffLine {
   newLineNum?: number;
 }
 
-// ==================== 生成 Diff 行 ====================
-function generateDiffLines(before: string[], after: string[]): DiffLine[] {
+function GitHubDiffView({ before, after }: { before: string[]; after: string[] }) {
   const lines: DiffLine[] = [];
   let i = 0, j = 0;
   let oldLineNum = 1;
   let newLineNum = 1;
 
+  // 计算差异
   while (i < before.length || j < after.length) {
     if (i < before.length && j < after.length && before[i] === after[j]) {
       lines.push({ type: 'normal', content: before[i], oldLineNum: oldLineNum++, newLineNum: newLineNum++ });
@@ -74,46 +74,14 @@ function generateDiffLines(before: string[], after: string[]): DiffLine[] {
       i++;
     }
   }
-  return lines;
-}
 
-// ==================== 将 Diff 行转换为文本（用于编辑） ====================
-function diffLinesToText(lines: DiffLine[]): string {
-  return lines.map(line => {
-    const prefix = line.type === 'add' ? '+' : line.type === 'remove' ? '-' : ' ';
-    return `${prefix} ${line.content}`;
-  }).join('\n');
-}
-
-// ==================== 将文本解析回 Diff 行（用于保存） ====================
-function textToDiffLines(text: string): DiffLine[] {
-  const lines = text.split('\n').filter(line => line !== '');
-  const result: DiffLine[] = [];
-  let oldLineNum = 1;
-  let newLineNum = 1;
-
-  for (const line of lines) {
-    if (line.startsWith('+')) {
-      result.push({ type: 'add', content: line.substring(1).trimStart(), newLineNum: newLineNum++ });
-    } else if (line.startsWith('-')) {
-      result.push({ type: 'remove', content: line.substring(1).trimStart(), oldLineNum: oldLineNum++ });
-    } else {
-      result.push({ type: 'normal', content: line.substring(1).trimStart(), oldLineNum: oldLineNum++, newLineNum: newLineNum++ });
-    }
-  }
-  return result;
-}
-
-// ==================== localStorage key ====================
-const STORAGE_KEY = 'custom_diff_lines';
-
-// ==================== Diff 视图组件（查看模式） ====================
-function GitHubDiffView({ lines }: { lines: DiffLine[] }) {
+  // 统计信息
   const additions = lines.filter(l => l.type === 'add').length;
   const deletions = lines.filter(l => l.type === 'remove').length;
 
   return (
     <div className="border border-gray-200 rounded-lg overflow-hidden">
+      {/* 文件头 */}
       <div className="flex items-center justify-between px-4 py-2 bg-gray-50 border-b border-gray-200">
         <div className="flex items-center gap-2">
           <span className="text-sm font-mono text-gray-700">patched.c → target.c</span>
@@ -128,6 +96,7 @@ function GitHubDiffView({ lines }: { lines: DiffLine[] }) {
         </div>
       </div>
 
+      {/* Diff 内容 */}
       <div className="overflow-x-auto">
         <table className="w-full border-collapse">
           <tbody>
@@ -138,15 +107,19 @@ function GitHubDiffView({ lines }: { lines: DiffLine[] }) {
 
               return (
                 <tr key={idx} className={`${bgColor} hover:brightness-95 transition-colors`}>
+                  {/* 旧文件行号 */}
                   <td className="w-12 px-2 py-0 text-right text-xs text-gray-400 select-none border-r border-gray-100 align-top">
                     {line.oldLineNum || ''}
                   </td>
+                  {/* 新文件行号 */}
                   <td className="w-12 px-2 py-0 text-right text-xs text-gray-400 select-none border-r border-gray-100 align-top">
                     {line.newLineNum || ''}
                   </td>
+                  {/* 符号 */}
                   <td className={`w-6 px-1 py-0 text-center select-none ${lineColor} align-top`}>
                     {sign}
                   </td>
+                  {/* 代码内容 */}
                   <td className={`px-2 py-0 font-mono text-sm whitespace-pre-wrap ${lineColor} align-top`}>
                     {line.content || ' '}
                   </td>
@@ -160,76 +133,22 @@ function GitHubDiffView({ lines }: { lines: DiffLine[] }) {
   );
 }
 
-// ==================== 编辑模式组件 ====================
-function EditDiffView({ value, onChange }: { value: string; onChange: (e: React.ChangeEvent<HTMLTextAreaElement>) => void }) {
-  return (
-    <div className="border border-gray-200 rounded-lg overflow-hidden">
-      <div className="px-4 py-2 bg-gray-50 border-b border-gray-200">
-        <span className="text-sm font-mono text-gray-700">编辑模式 — 手动修改 diff（格式：+ 新增行，- 删除行，空格 正常行）</span>
-      </div>
-      <textarea
-        className="w-full h-[500px] font-mono text-sm p-4 focus:outline-none focus:ring-2 focus:ring-cyan-500 resize-none"
-        value={value}
-        onChange={onChange}
-      />
-    </div>
-  );
-}
-
 export function CodeComparisonPage() {
   const navigate = useNavigate();
-  const [isEditing, setIsEditing] = useState(false);
-  const [editContent, setEditContent] = useState('');
-  
-  // 存储编辑后的 diff 行，从 localStorage 读取
-  const [customDiffLines, setCustomDiffLines] = useState<DiffLine | null>(() => {
-    const saved = localStorage.getItem(STORAGE_KEY);
-    if (saved) {
-      try {
-        return JSON.parse(saved);
-      } catch {
-        return null;
-      }
-    }
-    return null;
-  });
-  
-  // 获取当前显示的 diff 行（优先使用自定义的，否则用默认的）
-  const currentDiffLines = customDiffLines || generateDiffLines(patchedCodeText, targetText);
+  const location = useLocation();
 
-  // 当进入编辑模式时，用当前 diff 内容填充编辑框
-  const handleEdit = () => {
-    setEditContent(diffLinesToText(currentDiffLines));
-    setIsEditing(true);
-  };
-
-  const handleSave = () => {
-    // 解析编辑后的文本
-    const newLines = textToDiffLines(editContent);
-    setCustomDiffLines(newLines);
-    // 保存到 localStorage
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(newLines));
-    setIsEditing(false);
-    alert('修改已保存！刷新页面后依然有效');
-  };
-
-  const handleCancel = () => {
-    setIsEditing(false);
-  };
-
-  // 重置为原始 diff
-  const handleReset = () => {
-    localStorage.removeItem(STORAGE_KEY);
-    setCustomDiffLines(null);
-    alert('已重置为原始 diff');
-  };
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [location.pathname]);
 
   return (
     <div className="min-h-screen bg-white relative overflow-hidden">
+      {/* Background Grid */}
       <div className="absolute inset-0 opacity-5">
         <div className="absolute inset-0" style={{ backgroundImage: 'radial-gradient(circle, #e2e8f0 1px, transparent 1px)', backgroundSize: '40px 40px' }} />
       </div>
 
+      {/* Gradient Orbs */}
       <motion.div
         className="absolute top-20 right-20 w-96 h-96 bg-cyan-500/10 rounded-full blur-3xl"
         animate={{ scale: [1, 1.3, 1], opacity: [0.1, 0.2, 0.1] }}
@@ -244,68 +163,30 @@ export function CodeComparisonPage() {
       <div className="relative z-10 container mx-auto px-6 py-8 max-w-[1200px]">
         {/* Header */}
         <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} className="mb-8">
-          <div className="flex items-center justify-between">
-            <Button
-              onClick={() => navigate('/semantic-mapping')}
-              variant="ghost"
-              className="mb-4 text-slate-600 hover:text-slate-900"
-            >
-              <ArrowLeft className="w-4 h-4 mr-2" />
-              返回语义映射
-            </Button>
-          </div>
+          <Button
+            onClick={() => navigate('/semantic-mapping')}
+            variant="ghost"
+            className="mb-4 text-slate-600 hover:text-slate-900"
+          >
+            <ArrowLeft className="w-4 h-4 mr-2" />
+            返回语义映射
+          </Button>
 
-          <div className="flex items-center justify-between">
-            <div>
-              <div className="flex items-center gap-3 mb-2">
-                <GitCompare className="w-8 h-8 text-cyan-600" />
-                <h1 className="text-3xl font-bold text-slate-900">代码对比</h1>
-              </div>
-              <p className="text-slate-600">修复版本 → 目标版本的补丁移植差异</p>
-            </div>
-
-            <div className="flex gap-2">
-              {!isEditing ? (
-                <>
-                  <Button onClick={handleEdit} className="bg-cyan-500 hover:bg-cyan-600 text-white">
-                    <Edit3 className="w-4 h-4 mr-2" />
-                    手动修改
-                  </Button>
-                  {customDiffLines && (
-                    <Button onClick={handleReset} variant="outline" className="border-yellow-300 text-yellow-600 hover:bg-yellow-50">
-                      重置原始
-                    </Button>
-                  )}
-                </>
-              ) : (
-                <>
-                  <Button onClick={handleSave} className="bg-emerald-500 hover:bg-emerald-600 text-white">
-                    <Save className="w-4 h-4 mr-2" />
-                    保存
-                  </Button>
-                  <Button onClick={handleCancel} variant="outline" className="border-red-300 text-red-600 hover:bg-red-50">
-                    <X className="w-4 h-4 mr-2" />
-                    取消
-                  </Button>
-                </>
-              )}
-            </div>
+          <div className="flex items-center gap-3 mb-2">
+            <GitCompare className="w-8 h-8 text-cyan-600" />
+            <h1 className="text-3xl font-bold text-slate-900">代码对比</h1>
           </div>
+          <p className="text-slate-600">修复版本 → 目标版本的补丁移植差异</p>
         </motion.div>
 
-        {/* 移植结果 */}
+        {/* 移植结果 - GitHub 风格 */}
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}>
           <div className="flex items-center gap-2 mb-4">
             <div className="w-1 h-6 bg-emerald-400 rounded-full" />
             <h2 className="text-xl font-semibold text-slate-900">移植结果：目标版本</h2>
             <div className="flex-1 h-px bg-slate-200 ml-4" />
           </div>
-          
-          {isEditing ? (
-            <EditDiffView value={editContent} onChange={(e) => setEditContent(e.target.value)} />
-          ) : (
-            <GitHubDiffView lines={currentDiffLines} />
-          )}
+          <GitHubDiffView before={patchedCodeText} after={targetText} />
         </motion.div>
 
         {/* 分析面板 */}
@@ -369,6 +250,7 @@ export function CodeComparisonPage() {
               </p>
             </div>
           </div>
+
         </motion.div>
 
         {/* Workflow Completion Section */}
@@ -387,6 +269,7 @@ export function CodeComparisonPage() {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-2xl mx-auto">
+            {/* Verify Card */}
             <button
               onClick={() => {
                 const pocInputs = JSON.parse(sessionStorage.getItem('poc_inputs') || '[]');
@@ -414,6 +297,7 @@ export function CodeComparisonPage() {
               </p>
             </button>
 
+            {/* Adjust Card */}
             <button
               onClick={() => {
                 sessionStorage.setItem('agent_context', JSON.stringify({

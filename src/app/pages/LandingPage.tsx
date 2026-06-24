@@ -44,14 +44,14 @@ export function LandingPage() {
       <header className="fixed inset-x-0 top-0 z-50 border-b border-white/20 bg-[#121315]/65 backdrop-blur-md">
         <div className="mx-auto flex h-16 w-full max-w-6xl items-center justify-between px-5 md:px-8">
           <div className="flex items-center gap-2 text-sm font-semibold text-white">
-            <Sparkles className="size-4 text-[#f9b36c]" />
+            <Sparkles className="size-4 text-brand" />
             <span>PatchFlow</span>
           </div>
           <div className="flex items-center gap-3">
             <Button asChild variant="ghost" className="text-white hover:bg-white/10">
               <Link to="/login">登录</Link>
             </Button>
-            <Button asChild className="bg-[#f9b36c] text-[#2e1e11] hover:bg-[#eea45a]">
+            <Button asChild className="bg-brand text-brand-foreground hover:bg-brand-dark">
               <Link to="/login">开始使用</Link>
             </Button>
           </div>
@@ -64,6 +64,7 @@ export function LandingPage() {
             src={heroImage}
             alt="工程团队在办公室讨论软件系统方案"
             className="absolute inset-0 h-full w-full object-cover"
+            loading="lazy"
             initial={{ scale: 1.08 }}
             animate={{ scale: 1 }}
             transition={{ duration: 1.1, ease: "easeOut" }}
@@ -86,7 +87,7 @@ export function LandingPage() {
               </p>
 
               <div className="mt-8 flex flex-wrap gap-3">
-                <Button asChild className="group h-11 bg-[#f9b36c] px-6 text-[#2e1e11] hover:bg-[#eea45a]">
+                <Button asChild className="group h-11 bg-brand px-6 text-brand-foreground hover:bg-brand-dark">
                   <Link to="/login">
                     进入控制台
                     <ArrowRight className="size-4 transition-transform duration-300 group-hover:translate-x-1" />
@@ -168,7 +169,7 @@ export function LandingPage() {
 
         <section className="bg-[#121417] py-14 text-slate-100 md:py-18">
           <div className="mx-auto w-full max-w-6xl px-5 md:px-8">
-            <div className="mb-8 flex items-center gap-2 text-[#f9b36c]">
+            <div className="mb-8 flex items-center gap-2 text-brand">
               <CheckCheck className="size-4" />
               <p className="text-xs uppercase tracking-[0.16em]">Migration Workflow</p>
             </div>
@@ -192,7 +193,7 @@ export function LandingPage() {
                   }`}
                 >
                   <div className="md:col-span-2">
-                    <span className="inline-flex min-w-10 items-center justify-center border border-[#f9b36c]/45 bg-[#f9b36c]/10 px-2 py-1 text-xs font-semibold text-[#f9b36c]">
+                    <span className="inline-flex min-w-10 items-center justify-center border border-brand/45 bg-brand/10 px-2 py-1 text-xs font-semibold text-brand">
                       {row.step}
                     </span>
                   </div>
